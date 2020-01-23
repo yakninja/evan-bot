@@ -3,6 +3,7 @@
 
 import re
 import logging
+import random
 
 from telegram import ReplyKeyboardMarkup
 from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters,
@@ -38,13 +39,7 @@ def is_spoken_to(update, context):
 
     if len(mentions) == 0:
         # no direct mentions, look for names in text
-        pattern = "\\b(" + \
-                  "|".join(NAMES) + \
-                  "|" + updater.bot.first_name.lower() + \
-                  "|" + updater.bot.username.lower() + \
-                  ")[,.!]"
-        logger.info('pattern: %s', pattern)
-        if re.search(pattern, update.message.text.lower()):
+        if re.search(bot_name_pattern(), update.message.text.lower()):
             return True
     else:
         for mention in mentions:
@@ -56,16 +51,48 @@ def is_spoken_to(update, context):
     return False
 
 
-def reply(update, context):
+def bot_name_pattern():
+    return "\\b(" + \
+          "|".join(NAMES) + \
+          "|" + updater.bot.first_name.lower() + \
+          "|" + updater.bot.username.lower() + \
+          ")[ ,.!?]"
+
+
+def normalize_message(message_text):
+    """Remove bot name, extra spaces etc"""
+    message_text = message_text.lower()
+    message_text = message_text.replace('@' + updater.bot.username.lower(), ' ').strip()
+    p = re.compile(bot_name_pattern())
+    message_text = p.sub(' ', message_text).strip()
+    p = re.compile('\\s+')
+    message_text = p.sub(' ', message_text).strip()
+    return message_text
+
+
+def message(update, context):
     """Reply only if spoken to"""
+    from_user = update.message.from_user.first_name
+    if update.message.from_user.last_name:
+        from_user += ' ' + update.message.from_user.last_name
+    if update.message.from_user.username:
+        from_user += ' @' + update.message.from_user.username
+    logger.info('%s: "%s"', from_user, update.message.text)
+
     if not is_spoken_to(update, context):
         return
 
-    message_text = update.message.text.lower()
+    message_text = normalize_message(update.message.text)
     if re.search('(привет|здравст|здраст)', message_text):
         reply_text = 'привет :)'
     else:
-        reply_text = 'я не понимаю :('
+        choices = re.match("(.+?) или (.+?)[?]*$", message_text)
+        if choices:
+            print(choices.groups())
+            random.seed()
+            reply_text = random.choice(choices.groups())
+        else:
+            reply_text = 'я не понимаю :('
 
     update.message.reply_text(reply_text)
 
@@ -93,7 +120,7 @@ def main():
     dp.add_handler(CommandHandler("help", help))
 
     # on noncommand i.e message - echo the message on Telegram
-    dp.add_handler(MessageHandler(Filters.text, reply))
+    dp.add_handler(MessageHandler(Filters.text, message))
 
     # log all errors
     dp.add_error_handler(error)
