@@ -109,7 +109,7 @@ def main():
     # Make sure to set use_context=True to use the new context based callbacks
     # Post version 12 this will no longer be necessary
     updater = Updater(TOKEN, use_context=True)
-    logger.info("Started. Bot name: %s, username: %s", updater.bot.first_name, updater.bot.username)
+    logger.info("Started! Bot name: %s, username: %s", updater.bot.first_name, updater.bot.username)
 
     # Get the dispatcher to register handlers
     dp = updater.dispatcher
