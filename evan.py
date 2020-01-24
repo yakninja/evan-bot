@@ -61,7 +61,7 @@ def bot_name_pattern():
 
 def normalize_message(message_text):
     """Remove bot name, extra spaces etc"""
-    message_text = message_text.lower()
+    message_text = message_text.lower().encode('utf-8')
     message_text = message_text.replace('@' + updater.bot.username.lower(), ' ').strip()
     p = re.compile(bot_name_pattern())
     message_text = p.sub(' ', message_text).strip()
@@ -82,6 +82,7 @@ def message(update, context):
     if not is_spoken_to(update, context):
         return
 
+    random.seed()
     message_text = normalize_message(update.message.text)
     if re.search('(привет|здравст|здраст)', message_text):
         reply_text = 'привет :)'
@@ -89,7 +90,6 @@ def message(update, context):
         choices = re.match("(.+?) или (.+?)[?]*$", message_text)
         if choices:
             print(choices.groups())
-            random.seed()
             reply_text = random.choice(choices.groups())
         else:
             reply_text = 'я не понимаю :('
