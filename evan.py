@@ -9,6 +9,7 @@ from telegram import ReplyKeyboardMarkup
 from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters,
                           ConversationHandler)
 from config import TOKEN, NAMES
+import markovify
 updater = None
 
 ENTITY_TYPE_MENTION = 'mention'
@@ -91,7 +92,10 @@ def message(update, context):
         if choices:
             reply_text = random.choice(choices.groups())
         else:
-            reply_text = 'я не понимаю :('
+            reply_text = text_model.make_short_sentence(200)
+
+    if reply_text:
+        update.message.reply_text(reply_text)
 
     update.message.reply_text(reply_text)
 
@@ -101,9 +105,22 @@ def error(update, context):
     logger.warning('Update "%s" caused error "%s"', update, context.error)
 
 
+text_model = False
+
+
 def main():
     """Start the bot."""
     global updater
+    global text_model
+    logger.info("Building text model...")
+
+    # Get raw text as string.
+    with open("corpus.txt", encoding="utf8") as f:
+        text = f.read()
+
+    # Build the model.
+    text_model = markovify.Text(text, 2)
+
     logger.info("Starting...")
     # Create the Updater and pass it your bot's token.
     # Make sure to set use_context=True to use the new context based callbacks
