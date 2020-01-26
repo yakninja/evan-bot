@@ -97,8 +97,6 @@ def message(update, context):
     if reply_text:
         update.message.reply_text(reply_text)
 
-    update.message.reply_text(reply_text)
-
 
 def error(update, context):
     """Log Errors caused by Updates."""
