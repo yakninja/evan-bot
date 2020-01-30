@@ -4,6 +4,7 @@
 import re
 import logging
 import random
+import commands
 
 from telegram import ReplyKeyboardMarkup
 from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters,
@@ -13,23 +14,14 @@ import markovify
 updater = None
 
 ENTITY_TYPE_MENTION = 'mention'
+HELLO_REGEX = '(привет|здравст|здраст)'
+OR_REGEX = "(.+?) или (.+?)[?]*$"
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
 
 logger = logging.getLogger(__name__)
-
-# Define a few command handlers. These usually take the two arguments update and
-# context. Error handlers also receive the raised TelegramError object in error.
-def start(update, context):
-    """Send a message when the command /start is issued."""
-    update.message.reply_text('Привет! :)')
-
-
-def help(update, context):
-    """Send a message when the command /help is issued."""
-    update.message.reply_text('Help!')
 
 
 def is_spoken_to(update, context):
@@ -85,10 +77,10 @@ def message(update, context):
 
     random.seed()
     message_text = normalize_message(update.message.text)
-    if re.search('(привет|здравст|здраст)', message_text):
+    if re.search(HELLO_REGEX, message_text):
         reply_text = 'привет :)'
     else:
-        choices = re.match("(.+?) или (.+?)[?]*$", message_text)
+        choices = re.match(OR_REGEX, message_text)
         if choices:
             reply_text = random.choice(choices.groups())
         else:
@@ -130,8 +122,9 @@ def main():
     dp = updater.dispatcher
 
     # on different commands - answer in Telegram
-    dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(CommandHandler("help", help))
+    dp.add_handler(CommandHandler("start", commands.start))
+    dp.add_handler(CommandHandler("help", commands.help))
+    dp.add_handler(CommandHandler("export", commands.export))
 
     # on noncommand i.e message - echo the message on Telegram
     dp.add_handler(MessageHandler(Filters.text, message))
