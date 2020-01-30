@@ -125,6 +125,7 @@ def main():
     dp.add_handler(CommandHandler("start", commands.start))
     dp.add_handler(CommandHandler("help", commands.help))
     dp.add_handler(CommandHandler("export", commands.export))
+    dp.add_handler(CommandHandler("stats", commands.stats))
 
     # on noncommand i.e message - echo the message on Telegram
     dp.add_handler(MessageHandler(Filters.text, message))
