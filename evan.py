@@ -5,6 +5,7 @@ import re
 import logging
 import random
 import commands
+from strings import *
 
 from telegram import ReplyKeyboardMarkup
 from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters,
@@ -82,7 +83,10 @@ def message(update, context):
     else:
         choices = re.match(OR_REGEX, message_text)
         if choices:
-            reply_text = random.choice(choices.groups())
+            if choices.groups()[0] == choices.groups()[1]:
+                reply_text = YOURE_MAKING_FUN_OF_ME
+            else:
+                reply_text = random.choice(choices.groups())
         else:
             reply_text = text_model.make_short_sentence(200)
 
