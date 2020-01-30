@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from strings import *
 from config import *
-from smartcat import *
+import smartcat
 import re
 
 
@@ -13,5 +13,19 @@ def export(update, context):
         return
 
     name_or_id = m.groups()[0].lower().strip()
+    project_data = smartcat.project_stats()
+    if not project_data:
+        update.message.reply_text(SHIT_HAPPENS)
+        return
 
-    update.message.reply_text(name_or_id)
+    document = None
+    for d in project_data['documents']:
+        if d['id'] == name_or_id or d['name'].lower() == name_or_id:
+            document = d
+            break
+
+    if not document:
+        update.message.reply_text(NOTHING_FOUND)
+        return
+
+    update.message.reply_text(document['id'])
