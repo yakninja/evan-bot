@@ -61,13 +61,7 @@ def export(update, context):
 
     # upload to s3
 
-    print('uploading...')
     content_hash = hashlib.md5(document_text.encode('utf8')).hexdigest()
     filename = content_hash + '.txt'
-    s3_connection = boto.connect_s3(AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
-    bucket = s3_connection.get_bucket('evan-bot')
-    key = boto.s3.key.Key(bucket, filename)
-    key.send_file(StringIO(document_text))
-    print('uploaded')
 
     update.message.reply_text(filename)
