@@ -3,11 +3,7 @@ import re
 import time
 import csv
 from io import StringIO
-import boto3
-import boto.s3
-import sys
 import hashlib
-from boto.s3.key import Key
 from strings import *
 from config import *
 import smartcat
