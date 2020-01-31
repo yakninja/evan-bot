@@ -12,6 +12,7 @@ from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters,
                           ConversationHandler)
 from config import TOKEN, NAMES
 import markovify
+
 updater = None
 
 ENTITY_TYPE_MENTION = 'mention'
@@ -47,10 +48,10 @@ def is_spoken_to(update, context):
 
 def bot_name_pattern():
     return "\\b(" + \
-          "|".join(NAMES) + \
-          "|" + updater.bot.first_name.lower() + \
-          "|" + updater.bot.username.lower() + \
-          ")[ ,.!?]"
+           "|".join(NAMES) + \
+           "|" + updater.bot.first_name.lower() + \
+           "|" + updater.bot.username.lower() + \
+           ")[ ,.!?]"
 
 
 def normalize_message(message_text):

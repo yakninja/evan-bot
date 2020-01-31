@@ -1,8 +1,16 @@
 # -*- coding: utf-8 -*-
+import re
+import time
+import csv
+from io import StringIO
+import boto3
+import boto.s3
+import sys
+import hashlib
+from boto.s3.key import Key
 from strings import *
 from config import *
 import smartcat
-import re
 
 
 def export(update, context):
@@ -28,4 +36,38 @@ def export(update, context):
         update.message.reply_text(NOTHING_FOUND)
         return
 
-    update.message.reply_text(document['id'])
+    task_id = smartcat.export_request(document['id'])
+
+    # now wait for the task to complete and get the document text
+
+    document_text = ''
+    tries = 1
+    content_hash = ''
+    while tries < 10:
+        time.sleep(tries * tries)
+        try:
+            f = StringIO(smartcat.export(task_id))
+            reader = csv.reader(f, delimiter=',')
+            for row in reader:
+                document_text += row[1] + "\n"
+            break
+        except smartcat.SmartcatException as e:
+            if e.code == 204:
+                tries += 1  # not yet
+            raise e
+
+    if tries >= 10:
+        update.message.reply_text(SHIT_HAPPENS)
+
+    # upload to s3
+
+    print('uploading...')
+    content_hash = hashlib.md5(document_text.encode('utf8')).hexdigest()
+    filename = content_hash + '.txt'
+    s3_connection = boto.connect_s3(AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
+    bucket = s3_connection.get_bucket('evan-bot')
+    key = boto.s3.key.Key(bucket, filename)
+    key.send_file(StringIO(document_text))
+    print('uploaded')
+
+    update.message.reply_text(filename)
