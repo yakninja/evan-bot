@@ -1,5 +1,6 @@
+botocore
 python-telegram-bot==12.3.0
 markovify
 requests
 boto3
-
+python-slugify

@@ -8,6 +8,7 @@ import hashlib
 
 import boto3
 from botocore.exceptions import ClientError
+from slugify import slugify
 
 from strings import *
 from config import *
@@ -65,16 +66,15 @@ def export(update, context):
 
     document_text = process_document_text(document_text)
     content_hash = hashlib.md5(document_text.encode('utf8')).hexdigest()
-    filename = content_hash + '.txt'
+    filename = 'pact-' + slugify(document['name']) + '-' + content_hash[:4] + '.txt'
     s3_client = boto3.client('s3', aws_access_key_id=AWS_ACCESS_KEY_ID,
                              aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
     f = BytesIO(document_text.encode('utf8'))
     try:
-        response = s3_client.upload_fileobj(f, AWS_DOCUMENT_BUCKET, filename, ExtraArgs={'ACL': 'public-read'})
+        s3_client.upload_fileobj(f, AWS_DOCUMENT_BUCKET, filename, ExtraArgs={'ACL': 'public-read'})
         file_url = s3_client.generate_presigned_url('get_object',
                                                     Params={'Bucket': AWS_DOCUMENT_BUCKET,
-                                                            'Key': filename},
-                                                    ExpiresIn=86400)
+                                                            'Key': filename})
         update.message.reply_text(DOCUMENT_LINK.format(document['name'], file_url))
     except ClientError as e:
         logging.error(e)

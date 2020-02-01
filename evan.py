@@ -21,8 +21,6 @@ import markovify
 updater = None
 
 ENTITY_TYPE_MENTION = 'mention'
-HELLO_REGEX = '(привет|здравст|здраст)'
-OR_REGEX = "(.+?) или (.+?)[?]*$"
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
