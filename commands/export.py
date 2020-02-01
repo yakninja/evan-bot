@@ -50,7 +50,7 @@ def export(update, context):
             reader = csv.reader(f, delimiter=',')
             next(reader)  # skip header
             for row in reader:
-                document_text += row[1] + "\n"
+                document_text += row[1].strip() + "\n\n"
             break
         except smartcat.SmartcatException as e:
             if e.code == 204:
@@ -63,6 +63,7 @@ def export(update, context):
 
     # upload to s3
 
+    document_text = process_document_text(document_text)
     content_hash = hashlib.md5(document_text.encode('utf8')).hexdigest()
     filename = content_hash + '.txt'
     s3_client = boto3.client('s3', aws_access_key_id=AWS_ACCESS_KEY_ID,
@@ -74,8 +75,23 @@ def export(update, context):
                                                     Params={'Bucket': AWS_DOCUMENT_BUCKET,
                                                             'Key': filename},
                                                     ExpiresIn=86400)
-        update.message.reply_text(DOCUMENT_LINK.format(file_url))
+        update.message.reply_text(DOCUMENT_LINK.format(document['name'], file_url))
     except ClientError as e:
         logging.error(e)
         update.message.reply_text(SHIT_HAPPENS)
 
+
+def process_document_text(s):
+    """Strip extra spaces, add paragraphs where needed etc"""
+    s = s.replace('||', "\n\n")
+
+    join_paragraphs = re.compile("\n*<<\n*")
+    s = join_paragraphs.sub(" ", s)
+
+    extra_breaks = re.compile("\n{3,}")
+    s = extra_breaks.sub("\n\n", s)
+
+    extra_spaces = re.compile("[ \t]{2,}")
+    s = extra_spaces.sub(" ", s)
+
+    return s.strip()
