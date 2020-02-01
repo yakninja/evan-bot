@@ -1,9 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
+import hashlib
 import re
 import logging
 import random
+from io import StringIO, BytesIO
+
+import boto3
+from botocore.exceptions import ClientError
+
 import commands
 from strings import *
 
@@ -104,6 +109,7 @@ text_model = False
 
 
 def main():
+
     """Start the bot."""
     global updater
     global text_model

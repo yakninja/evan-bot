@@ -1,9 +1,14 @@
 # -*- coding: utf-8 -*-
+import logging
 import re
 import time
 import csv
-from io import StringIO
+from io import StringIO, BytesIO
 import hashlib
+
+import boto3
+from botocore.exceptions import ClientError
+
 from strings import *
 from config import *
 import smartcat
@@ -38,19 +43,20 @@ def export(update, context):
 
     document_text = ''
     tries = 1
-    content_hash = ''
     while tries < 10:
         time.sleep(tries * tries)
         try:
             f = StringIO(smartcat.export(task_id))
             reader = csv.reader(f, delimiter=',')
+            next(reader)  # skip header
             for row in reader:
                 document_text += row[1] + "\n"
             break
         except smartcat.SmartcatException as e:
             if e.code == 204:
                 tries += 1  # not yet
-            raise e
+            else:
+                raise e
 
     if tries >= 10:
         update.message.reply_text(SHIT_HAPPENS)
@@ -59,5 +65,17 @@ def export(update, context):
 
     content_hash = hashlib.md5(document_text.encode('utf8')).hexdigest()
     filename = content_hash + '.txt'
+    s3_client = boto3.client('s3', aws_access_key_id=AWS_ACCESS_KEY_ID,
+                             aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
+    f = BytesIO(document_text.encode('utf8'))
+    try:
+        response = s3_client.upload_fileobj(f, AWS_DOCUMENT_BUCKET, filename, ExtraArgs={'ACL': 'public-read'})
+        file_url = s3_client.generate_presigned_url('get_object',
+                                                    Params={'Bucket': AWS_DOCUMENT_BUCKET,
+                                                            'Key': filename},
+                                                    ExpiresIn=86400)
+        update.message.reply_text(DOCUMENT_LINK.format(file_url))
+    except ClientError as e:
+        logging.error(e)
+        update.message.reply_text(SHIT_HAPPENS)
 
-    update.message.reply_text(filename)
