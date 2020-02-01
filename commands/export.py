@@ -83,13 +83,13 @@ def export(update, context):
 
 def process_document_text(s):
     """Strip extra spaces, add paragraphs where needed etc"""
-    s = s.replace('||', "\n\n")
+    s = s.replace('||', "\n")
 
     join_paragraphs = re.compile("\n*<<\n*")
     s = join_paragraphs.sub(" ", s)
 
-    extra_breaks = re.compile("\n{3,}")
-    s = extra_breaks.sub("\n\n", s)
+    extra_breaks = re.compile("\n{2,}")
+    s = extra_breaks.sub("\n", s)
 
     extra_spaces = re.compile("[ \t]{2,}")
     s = extra_spaces.sub(" ", s)
