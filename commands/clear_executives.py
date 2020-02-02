@@ -39,6 +39,7 @@ def clear_executives(update, context):
         return
 
     logging.info(data)
+    cleared = 0
     for stage in stages:
         #  collect ids to remove
         ids_to_remove = []
@@ -53,5 +54,7 @@ def clear_executives(update, context):
                 logging.info('Removing id {0} from stage {1}'.format(eid, stage))
                 response = sc_web.api.document.unassign(document['id'], stage, eid)
                 logging.info('Response status: {0}'.format(response.status_code))
+                if response.status_code == 204:
+                    cleared += 1
 
-    update.message.reply_text(DONE)
+    update.message.reply_text(CLEARING_EXECUTIVES_DONE.format(document['name'], cleared))
