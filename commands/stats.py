@@ -1,13 +1,23 @@
 # -*- coding: utf-8 -*-
-from strings import *
+import json
+import logging
+
 from config import *
-import smartcat
-import re
+from smartcat.api import SmartCAT
+from strings import *
 
 
 def stats(update, context):
     """Get some stats from Smartcat"""
-    data = smartcat.project_stats()
+
+    sc_api = SmartCAT(SMARTCAT_API_USERNAME, SMARTCAT_API_PASSWORD, SmartCAT.SERVER_EUROPE)
+    response = sc_api.project.get(SMARTCAT_PROJECT_ID)
+    if response.status_code != 200:
+        logging.error('Could get the project info: {0}'.format(SMARTCAT_PROJECT_ID))
+        update.message.reply_text(SHIT_HAPPENS)
+        return
+
+    data = json.loads(response.content.decode('utf-8'))
     if not data:
         update.message.reply_text(SHIT_HAPPENS)
         return

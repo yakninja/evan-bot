@@ -1,22 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import hashlib
-import re
 import logging
 import random
-from io import StringIO, BytesIO
+import re
 
-import boto3
-from botocore.exceptions import ClientError
+import markovify
+from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters)
 
 import commands
-from strings import *
-
-from telegram import ReplyKeyboardMarkup
-from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters,
-                          ConversationHandler)
 from config import TOKEN, NAMES
-import markovify
+from strings import *
 
 updater = None
 
@@ -107,14 +100,13 @@ text_model = False
 
 
 def main():
-
     """Start the bot."""
     global updater
     global text_model
     logger.info("Building text model...")
 
     # Get raw text as string.
-    with open("corpus.txt", encoding="utf8") as f:
+    with open("corpus.txt", encoding="utf-8") as f:
         text = f.read()
 
     # Build the model.
@@ -134,6 +126,7 @@ def main():
     dp.add_handler(CommandHandler("start", commands.start))
     dp.add_handler(CommandHandler("help", commands.help))
     dp.add_handler(CommandHandler("export", commands.export))
+    dp.add_handler(CommandHandler("assign", commands.assign))
     dp.add_handler(CommandHandler("stats", commands.stats))
 
     # on noncommand i.e message - echo the message on Telegram
