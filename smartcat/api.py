@@ -393,3 +393,10 @@ class Document(BaseResource):
         :param task_id: The export task identifier
         """
         return self.send_get_request('/api/integration/v1/document/export/%s' % task_id, stream=True)
+
+    def unassign(self, document_id, stage_number, executive_user_id):
+        params = {
+            'documentId': document_id,
+            'stageNumber': stage_number,
+        }
+        return self.send_post_request('/api/integration/v1/document/unassign', params=params, json=executive_user_id)

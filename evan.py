@@ -127,6 +127,7 @@ def main():
     dp.add_handler(CommandHandler("help", commands.help))
     dp.add_handler(CommandHandler("export", commands.export))
     dp.add_handler(CommandHandler("executives", commands.executives))
+    dp.add_handler(CommandHandler("clear_executives", commands.clear_executives))
     dp.add_handler(CommandHandler("assign", commands.assign))
     dp.add_handler(CommandHandler("stats", commands.stats))
 
