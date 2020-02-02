@@ -12,7 +12,7 @@ from botocore.exceptions import ClientError
 from slugify import slugify
 
 from config import *
-from smartcat.api import SmartCAT
+from smartcat.api import SmartCAT, SmartcatException
 from strings import *
 
 
@@ -26,26 +26,16 @@ def export(update, context):
     name_or_id = m.groups()[0].lower().strip()
     logging.info('Export request: {0}'.format(name_or_id))
 
-    sc_api = SmartCAT(SMARTCAT_API_USERNAME, SMARTCAT_API_PASSWORD, SmartCAT.SERVER_EUROPE)
-    response = sc_api.project.get(SMARTCAT_PROJECT_ID)
-    if response.status_code != 200:
-        logging.error('Could get the project info: {0}'.format(SMARTCAT_PROJECT_ID))
+    sc_api = SmartCAT(SMARTCAT_API_USERNAME, SMARTCAT_API_PASSWORD)
+    try:
+        document = sc_api.project.get_document_by_name(SMARTCAT_PROJECT_ID, name_or_id)
+    except SmartcatException as e:
+        logging.error('Error getting document: {0} {1}'.format(e.code, e.message))
         update.message.reply_text(SHIT_HAPPENS)
         return
-
-    project_data = json.loads(response.content.decode('utf-8'))
-    if not project_data:
-        update.message.reply_text(SHIT_HAPPENS)
-        return
-
-    document = None
-    for d in project_data['documents']:
-        if d['id'] == name_or_id or d['name'].lower() == name_or_id:
-            document = d
-            break
 
     if not document:
-        logging.info('Document not found')
+        logging.warning('Document not found')
         update.message.reply_text(NOTHING_FOUND)
         return
 

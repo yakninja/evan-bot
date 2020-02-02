@@ -10,7 +10,7 @@ from strings import *
 def stats(update, context):
     """Get some stats from Smartcat"""
 
-    sc_api = SmartCAT(SMARTCAT_API_USERNAME, SMARTCAT_API_PASSWORD, SmartCAT.SERVER_EUROPE)
+    sc_api = SmartCAT(SMARTCAT_API_USERNAME, SMARTCAT_API_PASSWORD)
     response = sc_api.project.get(SMARTCAT_PROJECT_ID)
     if response.status_code != 200:
         logging.error('Could get the project info: {0}'.format(SMARTCAT_PROJECT_ID))

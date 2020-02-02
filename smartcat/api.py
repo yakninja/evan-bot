@@ -19,6 +19,13 @@ from abc import ABCMeta
 import requests
 
 
+class SmartcatException(Exception):
+    def __init__(self, message, code=0):
+        super(SmartcatException, self).__init__(message)
+        self.code = code
+        self.message = message
+
+
 class SmartCAT(object):
     """SmartCAT API
 
@@ -235,7 +242,7 @@ class Project(BaseResource):
         return self.send_get_request('/api/integration/v1/project/%s/completedWorkStatistics' % id)
 
     def get_all(self):
-        """Adds document to project.
+        """Get document list.
 
         :return: :class:`Response <Response>` object
         :rtype: requests.Response
@@ -270,6 +277,28 @@ class Project(BaseResource):
         return self.send_post_request(
             '/api/integration/v1/project/language',
             params={'projectId': id, 'targetLanguage': lang})
+
+    def get_document_by_name(self, project_id, document_name):
+        """Return document dict by name or id
+
+        :param project_id: The project identifier.
+        :param document_name: Document name or id.
+        :return dict: If no document with the name was found, return None
+        """
+        response = self.get(project_id)
+        if response.status_code != 200:
+            raise SmartcatException(code=response.status_code, message='Invalid response code')
+
+        project_data = json.loads(response.content.decode('utf-8'))
+        if not project_data:
+            raise SmartcatException(message='Invalid response')
+
+        name = document_name.lower()
+        for d in project_data['documents']:
+            if d['id'] == name or d['name'].lower() == name:
+                return d
+
+        return None
 
 
 class Document(BaseResource):
