@@ -5,6 +5,10 @@ from helpers import *
 
 def clear_executives(update, context):
     """List executives for the document"""
+    if update.message.from_user.username not in ADMIN_USERS:
+        update.message.reply_text(YOU_HAVE_NO_POWER_OVER_ME)
+        return
+
     m = re.match("/clear_executives\\s+(.+?)(\\s+(translation|editing))?$", update.message.text)
     if not m:
         update.message.reply_text(I_DONT_UNDERSTAND)
