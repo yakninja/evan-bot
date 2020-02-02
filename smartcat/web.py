@@ -19,32 +19,31 @@ from .api import SmartCAT, SmartcatException
 
 class SmartCATWeb(object):
     BASE_URL = 'https://smartcat.ai'
-    SIGN_IN_URL = '/api/auth/SignInUser'
 
-    def __init__(self, admin_email, admin_password, api_username, api_password, api_server_url=SmartCAT.SERVER_EUROPE,
-                 cookie_jar_filename=None):
+    def __init__(self, session_filename,
+                 admin_email, admin_password,
+                 api_username, api_password, api_server_url=SmartCAT.SERVER_EUROPE):
         """
         Constructor
 
         :param admin_email: SmartCAT admin email.
         :param admin_password: SmartCAT admin password.
         """
+        self.session_filename = session_filename
         self.admin_email = admin_email
         self.admin_password = admin_password
         self.api = SmartCAT(api_username, api_password, api_server_url)
-        self.session = requests.Session()
-        self.session.headers.update({'Accept': 'application/json'})
-        self.cookie_jar_filename = cookie_jar_filename
-        if self.cookie_jar_filename:
-            try:
-                with open(self.cookie_jar_filename, 'rb') as f:
-                    self.session.cookies.update(pickle.load(f))
-            except FileNotFoundError:
-                pass
 
-    def save_cookies(self):
-        with open(self.cookie_jar_filename, 'wb') as f:
-            pickle.dump(self.session.cookies, f)
+        try:
+            with open(self.session_filename, 'rb') as f:
+                self.session = pickle.load(f)
+        except FileNotFoundError:
+            self.session = requests.Session()
+            self.session.headers.update({'Accept': 'application/json'})
+
+    def dump_session(self):
+        with open(self.session_filename, 'wb') as f:
+            pickle.dump(self.session, f)
 
     def sign_in(self):
         logging.info('Logging in as %s' % self.admin_email)
@@ -63,7 +62,8 @@ class SmartCATWeb(object):
             logging.warning('Could not sign in as %s' % self.admin_email)
             raise SmartcatException(code=response.status_code, message=response.content)
 
-        self.save_cookies()
+        logging.info(response.content)
+        self.dump_session()
         return response
 
     def get_workflow_stages(self, project_id, document_list_id):

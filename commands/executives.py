@@ -32,8 +32,8 @@ def executives(update, context):
 
     logging.info('Document id: {0}'.format(document['id']))
 
-    sc_web = SmartCATWeb(SMARTCAT_EMAIL, SMARTCAT_PASSWORD, SMARTCAT_API_USERNAME, SMARTCAT_API_PASSWORD,
-                         cookie_jar_filename='cookies.txt')
+    sc_web = SmartCATWeb(SMARTCAT_SESSION_FILE, SMARTCAT_EMAIL, SMARTCAT_PASSWORD,
+                         SMARTCAT_API_USERNAME, SMARTCAT_API_PASSWORD)
 
     remove_lang = re.compile('_.{2}$')
     response = sc_web.create_document_list_id(remove_lang.sub('', document['id']))

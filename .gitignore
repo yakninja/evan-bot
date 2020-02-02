@@ -1,6 +1,6 @@
 .idea
 config.py
-cookies.txt
+session.dump
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
