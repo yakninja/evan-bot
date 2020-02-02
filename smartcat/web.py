@@ -9,7 +9,6 @@ This can stop working at any time. Needs admin username/password to function
 
 """
 
-import json
 import logging
 import pickle
 
@@ -61,12 +60,8 @@ class SmartCATWeb(object):
         url = self.BASE_URL + '/api/auth/SignInUser'
         response = self.session.post(url, post_data)
         if response.status_code != 200:
-            message = 'Could not sign in as %s' % self.admin_email
-            # try to get some more info on error
-            data = json.loads(response.content.decode('utf-8'))
-            if data and data['error']:
-                message = data['error']
-            raise SmartcatException(code=response.status_code, message=message)
+            logging.warning('Could not sign in as %s' % self.admin_email)
+            raise SmartcatException(code=response.status_code, message=response.content)
 
         self.save_cookies()
         return response
@@ -76,6 +71,7 @@ class SmartCATWeb(object):
               '/api/WorkflowAssignments/%s/GetWorkflowStages?documentListId=%s' % (project_id, document_list_id)
         response = self.session.get(url)
         if response.status_code == 403:
+            logging.info(response.content)
             self.sign_in()
             return self.session.get(url)
         else:
@@ -85,6 +81,7 @@ class SmartCATWeb(object):
         url = self.BASE_URL + '/api/WorkflowAssignments/CreateDocumentListId'
         response = self.session.post(url, json=[document_id])
         if response.status_code == 403:
+            logging.info(response.content)
             self.sign_in()
             return self.session.post(url, json=[document_id])
         else:
