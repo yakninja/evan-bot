@@ -1,3 +1,4 @@
+flask
 botocore
 python-telegram-bot==12.3.0
 markovify
