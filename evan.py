@@ -149,6 +149,16 @@ def main():
         },
         fallbacks=[CommandHandler('cancel', commands.assign_cancel)]
     ))
+    dp.add_handler(ConversationHandler(
+        entry_points=[CommandHandler('revoke', commands.revoke_start)],
+        states={
+            constants.STATE_START: [MessageHandler(Filters.text, commands.revoke_start)],
+            constants.STATE_CHOOSE_EXECUTIVES: [MessageHandler(Filters.text, commands.revoke_choose_executives)],
+            constants.STATE_CHOOSE_DOCUMENT: [MessageHandler(Filters.text, commands.revoke_choose_document)],
+            constants.STATE_CHOOSE_STAGE: [MessageHandler(Filters.text, commands.revoke_choose_stage)],
+        },
+        fallbacks=[CommandHandler('cancel', commands.revoke_cancel)]
+    ))
 
     # on non-command i.e message - echo the message on Telegram
     dp.add_handler(MessageHandler(Filters.text, message))
