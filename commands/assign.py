@@ -77,7 +77,9 @@ def assign_choose_executives(update, context):
         update.message.reply_text(reply, reply_markup=ReplyKeyboardRemove())
         return ConversationHandler.END
     else:
-        reply += "\nЕсли все в порядке - введи название или id главы. Если нет - введи /cancel и попытайся снова."
+        reply += "\nЕсли все в порядке - введи название или id главы (можно несколько, по одному на строку)\n" \
+                 "Чтобы выбрать все главы, введи \"all\"\n" \
+                 "Для выхода введи /cancel"
         update.message.reply_text(reply, reply_markup=ReplyKeyboardRemove())
         return constants.STATE_CHOOSE_DOCUMENT
 
@@ -86,25 +88,41 @@ def assign_choose_document(update, context):
     if not check_assign_permission(update):
         return ConversationHandler.END
 
-    name_or_id = update.message.text.strip()
-
     sc_api = SmartCAT(SMARTCAT_API_USERNAME, SMARTCAT_API_PASSWORD)
-    try:
-        document = sc_api.project.get_document_by_name(SMARTCAT_PROJECT_ID, name_or_id)
-    except SmartcatException as e:
-        logger.error('Error getting document: {0} {1}'.format(e.code, e.message))
+    names_or_ids = update.message.text.lower().strip()
+    documents = []
+    response = sc_api.project.get(SMARTCAT_PROJECT_ID)
+    if response.status_code != 200:
         update.message.reply_text(SHIT_HAPPENS + "\nПопробуй еще раз или введи /cancel для выхода")
         return constants.STATE_CHOOSE_DOCUMENT
 
-    if not document:
-        logger.warning('Document not found')
+    project_data = json.loads(response.content.decode('utf-8'))
+    if not project_data:
+        update.message.reply_text(SHIT_HAPPENS + "\nПопробуй еще раз или введи /cancel для выхода")
+        return constants.STATE_CHOOSE_DOCUMENT
+
+    if names_or_ids == 'all':
+        documents = project_data['documents']
+    else:
+        names_or_ids = [s.lower().strip() for s in names_or_ids.split("\n")]
+        for d in project_data['documents']:
+            if d['id'].lower() in names_or_ids or d['name'].lower().strip() in names_or_ids:
+                logger.info("Document added: {0} {1}".format(d['id'], d['name']))
+                documents.append(d)
+
+    if len(documents) == 0:
         update.message.reply_text(NOTHING_FOUND + "\nПопробуй еще раз или введи /cancel для выхода")
         return constants.STATE_CHOOSE_DOCUMENT
 
-    logger.info('Document id: {0}'.format(document['id']))
-    context.user_data['document'] = document
+    context.user_data['documents'] = documents
 
-    reply = "Ок, я нашел эту главу: {0} ({1})".format(document['name'], document['id'])
+    if len(documents) == 1:
+        reply = "Ок, я нашел одну главу: {0} ({1})".format(documents[0]['name'], documents[0]['id'])
+    else:
+        reply = "Ок, я нашел {0} глав.\n".format(len(documents))
+        for d in documents:
+            reply += "- {0} {1}\n".format(d['name'], d['id'])
+
     reply += "\nТеперь выбери куда назначаем этих людей (или /cancel для выхода)"
     reply_keyboard = [['Переводчики', 'Редакторы']]
     update.message.reply_text(reply, reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
@@ -118,33 +136,45 @@ def assign_choose_stage(update, context):
     stage = constants.TRANSLATION_SERVICE_ID if update.message.text.lower().strip() == 'переводчики' \
         else constants.EDITING_SERVICE_ID
     stage_name = 'переводчиков' if stage == constants.TRANSLATION_SERVICE_ID else 'редакторов'
+    documents = context.user_data['documents']
 
-    reply = "Хорошо, назначаю " + stage_name + \
-            " в главу " + context.user_data['document']['name'] + "\n"
+    reply = "Хорошо, назначаю " + stage_name;
+
+    if len(documents) == 1:
+        reply += " в главу " + documents[0]['name'] + "\n"
+    else:
+        reply += " в {0} вышеупомянутых глав\n".format(len(documents))
 
     sc_web = SmartCATWeb(SMARTCAT_SESSION_FILE, SMARTCAT_EMAIL, SMARTCAT_PASSWORD,
                          SMARTCAT_API_USERNAME, SMARTCAT_API_PASSWORD)
-    ids = []
-    for e in context.user_data['executives']:
-        reply += e['firstName'] + ' ' + e['lastName'] + ': '
-        response = sc_web.api.document.assign(context.user_data['document']['id'], stage, e['id'])
-        ids.append(e['id'])
-        reply += ('OK' if response.status_code == 204 else '?') + "\n"
+    reply_count = 0
+    for d in documents:
+        ids = []
+        for e in context.user_data['executives']:
+            if reply_count < 10:
+                reply += e['firstName'] + ' ' + e['lastName'] + ': '
+            response = sc_web.api.document.assign(d['id'], stage, e['id'])
+            ids.append(e['id'])
+            if reply_count < 10:
+                reply += ('OK' if response.status_code == 204 else '?') + "\n"
+            reply_count += 1
 
-    remove_lang = re.compile('_.{2}$')
-    response = sc_web.create_document_list_id(remove_lang.sub('', context.user_data['document']['id']))
-    list_id = json.loads(response.content, encoding='utf-8')
+        remove_lang = re.compile('_.{2}$')
+        response = sc_web.create_document_list_id(remove_lang.sub('', d['id']))
+        list_id = json.loads(response.content, encoding='utf-8')
 
-    data = {
-        'targetLanguageId': 25,
-        'addedAssignedUserIds': ids,
-        'removedAssignedUserIds': [],
-        'removedInvitedUserIds': [],
-        'saveDeadline': False,
-        'deadline': None,
-    }
-    response = sc_web.confirm_assignments(SMARTCAT_PROJECT_ID, list_id, stage, data)
-    logger.info('confirm_assignments: '.format(response.status_code))
+        data = {
+            'targetLanguageId': 25,
+            'addedAssignedUserIds': ids,
+            'removedAssignedUserIds': [],
+            'removedInvitedUserIds': [],
+            'saveDeadline': False,
+            'deadline': None,
+        }
+        response = sc_web.confirm_assignments(SMARTCAT_PROJECT_ID, list_id, stage, data)
+        logger.info('confirm_assignments: {0}'.format(response.status_code))
+    if reply_count >= 10:
+        reply += "...\n"
     update.message.reply_text(reply, reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
