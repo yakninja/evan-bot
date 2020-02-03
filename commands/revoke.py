@@ -125,6 +125,7 @@ def revoke_choose_stage(update, context):
     sc_web = SmartCATWeb(SMARTCAT_SESSION_FILE, SMARTCAT_EMAIL, SMARTCAT_PASSWORD,
                          SMARTCAT_API_USERNAME, SMARTCAT_API_PASSWORD)
     for e in context.user_data['executives']:
+        reply += e['firstName'] + ' ' + e['lastName'] + ': '
         response = sc_web.api.document.unassign(context.user_data['document']['id'], stage, e['id'])
         reply += ('OK' if response.status_code == 204 else '?') + "\n"
 
