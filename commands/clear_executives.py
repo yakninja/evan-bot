@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from constants import *
 from helpers import *
 
 
@@ -38,7 +39,6 @@ def clear_executives(update, context):
         update.message.reply_text(SHIT_HAPPENS)
         return
 
-    logging.info(data)
     cleared = 0
     for stage in stages:
         #  collect ids to remove

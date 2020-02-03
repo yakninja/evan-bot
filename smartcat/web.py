@@ -86,3 +86,4 @@ class SmartCATWeb(object):
             return self.session.post(url, json=[document_id])
         else:
             return response
+

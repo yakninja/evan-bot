@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 START_HELLO = 'Привет! :) Напиши /help, если нужен список команд'
+HELLO_THERE = "привет :)"
 HELLO_REGEX = '(привет|здравст|здраст)'
 OR_REGEX = "(.+?) или (.+?)[?]*$"
 I_DONT_UNDERSTAND = "Я не понимаю"
@@ -14,3 +15,5 @@ TRANSLATORS = "Переводчики"
 EDITORS = "Редакторы"
 DONE = "Готово!"
 CLEARING_EXECUTIVES_DONE = "Я удалил из главы {0} {1} исполнителей"
+OK_BYE = "Ладно, пока!"
+ENTER_THE_DOCUMENT_NAME_ID_OR_CANCEL = "Напиши название/ID документа, или /cancel для выхода"

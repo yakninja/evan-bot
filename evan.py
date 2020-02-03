@@ -5,9 +5,10 @@ import random
 import re
 
 import markovify
-from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters)
+from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters, ConversationHandler)
 
 import commands
+import constants
 from config import TOKEN, NAMES
 from strings import *
 
@@ -71,12 +72,13 @@ def message(update, context):
     logger.info('%s: "%s"', from_user, update.message.text)
 
     if not is_spoken_to(update, context):
+        logger.info(update.message)
         return
 
     random.seed()
     message_text = normalize_message(update.message.text)
     if re.search(HELLO_REGEX, message_text):
-        reply_text = 'привет :)'
+        reply_text = HELLO_THERE
     else:
         choices = re.match(OR_REGEX, message_text)
         if choices:
@@ -125,13 +127,29 @@ def main():
     # on different commands - answer in Telegram
     dp.add_handler(CommandHandler("start", commands.start))
     dp.add_handler(CommandHandler("help", commands.help))
-    dp.add_handler(CommandHandler("export", commands.export))
     dp.add_handler(CommandHandler("executives", commands.executives))
     dp.add_handler(CommandHandler("clear_executives", commands.clear_executives))
-    dp.add_handler(CommandHandler("assign", commands.assign))
     dp.add_handler(CommandHandler("stats", commands.stats))
 
-    # on noncommand i.e message - echo the message on Telegram
+    # Add conversation handlers
+    dp.add_handler(ConversationHandler(
+        entry_points=[CommandHandler('export', commands.export_start)],
+        states={
+            constants.STATE_EXPORT: [MessageHandler(Filters.text, commands.export)]
+        },
+        fallbacks=[CommandHandler('cancel', commands.export_cancel)]
+    ))
+    dp.add_handler(ConversationHandler(
+        entry_points=[CommandHandler('assign', commands.assign_start)],
+        states={
+            constants.STATE_START: [MessageHandler(Filters.text, commands.assign_start)],
+            constants.STATE_CHOOSE_EXECUTIVES: [MessageHandler(Filters.text, commands.assign_choose_executives)],
+            constants.STATE_CHOOSE_DOCUMENT: [MessageHandler(Filters.text, commands.assign_choose_document)],
+        },
+        fallbacks=[CommandHandler('cancel', commands.assign_cancel)]
+    ))
+
+    # on non-command i.e message - echo the message on Telegram
     dp.add_handler(MessageHandler(Filters.text, message))
 
     # log all errors

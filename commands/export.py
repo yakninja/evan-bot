@@ -10,51 +10,64 @@ from io import StringIO, BytesIO
 import boto3
 from botocore.exceptions import ClientError
 from slugify import slugify
+from telegram import ReplyKeyboardRemove
+from telegram.ext import ConversationHandler
 
+import constants
 from config import *
 from smartcat.api import SmartCAT, SmartcatException
 from strings import *
 
+logger = logging.getLogger(__name__)
+
+
+def export_start(update, context):
+    update.message.reply_text(ENTER_THE_DOCUMENT_NAME_ID_OR_CANCEL,
+                              reply_markup=ReplyKeyboardRemove())
+    return constants.STATE_EXPORT
+
+
+def export_cancel(update, context):
+    user = update.message.from_user
+    logger.info("User %s canceled the conversation.", user.first_name)
+    update.message.reply_text(OK_BYE, reply_markup=ReplyKeyboardRemove())
+    return ConversationHandler.END
+
 
 def export(update, context):
     """Export a document on /export command"""
-    m = re.match("/export\\s+(.+)", update.message.text)
-    if not m:
-        update.message.reply_text(I_DONT_UNDERSTAND)
-        return
-
-    name_or_id = m.groups()[0].lower().strip()
-    logging.info('Export request: {0}'.format(name_or_id))
+    name_or_id = update.message.text.lower().strip()
+    logger.info('Export request: {0}'.format(name_or_id))
 
     sc_api = SmartCAT(SMARTCAT_API_USERNAME, SMARTCAT_API_PASSWORD)
     try:
         document = sc_api.project.get_document_by_name(SMARTCAT_PROJECT_ID, name_or_id)
     except SmartcatException as e:
-        logging.error('Error getting document: {0} {1}'.format(e.code, e.message))
+        logger.error('Error getting document: {0} {1}'.format(e.code, e.message))
         update.message.reply_text(SHIT_HAPPENS)
-        return
+        return ConversationHandler.END
 
     if not document:
-        logging.warning('Document not found')
+        logger.warning('Document not found')
         update.message.reply_text(NOTHING_FOUND)
-        return
+        return ConversationHandler.END
 
-    logging.info('Document id: {0}'.format(document['id']))
+    logger.info('Document id: {0}'.format(document['id']))
 
     response = sc_api.document.request_export(document['id'], target_type='multilangCsv')
     if response.status_code != 200:
-        logging.error('Error requesting document export: code {0}'.format(response.status_code))
+        logger.error('Error requesting document export: code {0}'.format(response.status_code))
         update.message.reply_text(SHIT_HAPPENS)
-        return
+        return ConversationHandler.END
 
     data = json.loads(response.content.decode('utf-8'))
     if not data or not data['id']:
-        logging.error('Error requesting document export: invalid content')
+        logger.error('Error requesting document export: invalid content')
         update.message.reply_text(SHIT_HAPPENS)
-        return
+        return ConversationHandler.END
 
     task_id = data['id']
-    logging.info('Export task id: {0}'.format(task_id))
+    logger.info('Export task id: {0}'.format(task_id))
 
     # now wait for the task to complete and get the document text
 
@@ -64,7 +77,7 @@ def export(update, context):
         time.sleep(tries * tries)
         response = sc_api.document.download_export_result(task_id)
         if response.status_code == 204:
-            logging.info('Document not ready yet, retrying...')
+            logger.info('Document not ready yet, retrying...')
             tries += 1
         else:
             if response.status_code == 200:
@@ -75,23 +88,24 @@ def export(update, context):
                     try:
                         document_text += row[1].strip() + "\n\n"
                     except IndexError:
-                        logging.warning('Index out of range in CSV')
+                        logger.warning('Index out of range in CSV')
                 break
             else:
-                logging.error('Could not get document: code {0}'.format(response.status_code))
+                logger.error('Could not get document: code {0}'.format(response.status_code))
                 update.message.reply_text(SHIT_HAPPENS)
                 return
 
     if tries >= 10:
-        logging.error('Retry count exceeded')
+        logger.error('Retry count exceeded')
         update.message.reply_text(SHIT_HAPPENS)
+        return ConversationHandler.END
 
     # upload to s3 and get the public link
 
     document_text = process_document_text(document_text)
     content_hash = hashlib.md5(document_text.encode('utf-8')).hexdigest()
     filename = 'pact-' + slugify(document['name']) + '-' + content_hash[:4] + '.txt'
-    logging.info('Uploading {0} to s3, bucket {1}'.format(filename, AWS_DOCUMENT_BUCKET))
+    logger.info('Uploading {0} to s3, bucket {1}'.format(filename, AWS_DOCUMENT_BUCKET))
     s3_client = boto3.client('s3',
                              aws_access_key_id=AWS_ACCESS_KEY_ID,
                              aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
@@ -103,11 +117,13 @@ def export(update, context):
                                                             'Key': filename})
         if '?' in file_url:
             file_url = file_url.split('?')[0]  # query string does not matter in our case
-        logging.info('Uploaded, file URL: {0}'.format(file_url))
+        logger.info('Uploaded, file URL: {0}'.format(file_url))
         update.message.reply_text(DOCUMENT_LINK.format(document['name'], file_url))
     except ClientError as e:
-        logging.error(e)
+        logger.error(e)
         update.message.reply_text(SHIT_HAPPENS)
+
+    return ConversationHandler.END
 
 
 def process_document_text(s):

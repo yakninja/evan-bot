@@ -77,6 +77,7 @@ class SmartCAT(object):
         #: :class:`Project <Project>`.
         self._project = None
         self._document = None
+        self._account = None
         pass
 
     @property
@@ -106,8 +107,21 @@ class SmartCAT(object):
         self._document = self._create_api_resource('Document')
         return self._document
 
+    @property
+    def account(self):
+        """Returns instance of `Account <smartcat.api.Account>`
+
+        :return: :class:`Account <smartcat.api.Account>` object
+        :rtype: smartcat.api.Account
+        """
+        if self._account is not None:
+            return self._account
+
+        self._account = self._create_api_resource('Account')
+        return self._account
+
     def _create_api_resource(self, resource):
-        """Creates and rerurns API resource
+        """Creates and returns API resource
         :return: :class:`BaseResource <BaseResource>` object
         :rtype: smartcat.BaseResource
         """
@@ -400,3 +414,13 @@ class Document(BaseResource):
             'stageNumber': stage_number,
         }
         return self.send_post_request('/api/integration/v1/document/unassign', params=params, json=executive_user_id)
+
+
+class Account(BaseResource):
+    def find_executives_by_name(self, name):
+        params = {
+            "skip": 0,
+            "limit": 10,
+            "searchString": name
+        }
+        return self.send_post_request('/api/integration/v1/account/searchMyTeam', json=params)
