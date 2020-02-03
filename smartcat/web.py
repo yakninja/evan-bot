@@ -87,3 +87,15 @@ class SmartCATWeb(object):
         else:
             return response
 
+    def confirm_assignments(self, project_id, document_list_id, stage, data):
+        url = self.BASE_URL + \
+              '/api/WorkflowAssignments/%s/SaveAssignments?documentListId=%s&stageSelector=%s' % \
+              (project_id, document_list_id, stage)
+        response = self.session.post(url, json=data)
+        if response.status_code == 403:
+            logging.info(response.content)
+            self.sign_in()
+            return self.session.post(url, json=data)
+        else:
+            return response
+

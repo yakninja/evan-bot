@@ -408,6 +408,23 @@ class Document(BaseResource):
         """
         return self.send_get_request('/api/integration/v1/document/export/%s' % task_id, stream=True)
 
+    def assign(self, document_id, stage_number, executive_user_id):
+        params = {
+            'documentId': document_id,
+            'stageNumber': stage_number,
+        }
+        data = {
+            "executives": [
+                {
+                    "id": executive_user_id,
+                    "wordsCount": 0
+                }
+            ],
+            "minWordsCountForExecutive": 0,
+            "assignmentMode": "distributeAmongAll"
+        }
+        return self.send_post_request('/api/integration/v1/document/assign', params=params, json=data)
+
     def unassign(self, document_id, stage_number, executive_user_id):
         params = {
             'documentId': document_id,

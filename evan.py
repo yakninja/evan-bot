@@ -145,6 +145,7 @@ def main():
             constants.STATE_START: [MessageHandler(Filters.text, commands.assign_start)],
             constants.STATE_CHOOSE_EXECUTIVES: [MessageHandler(Filters.text, commands.assign_choose_executives)],
             constants.STATE_CHOOSE_DOCUMENT: [MessageHandler(Filters.text, commands.assign_choose_document)],
+            constants.STATE_CHOOSE_STAGE: [MessageHandler(Filters.text, commands.assign_choose_stage)],
         },
         fallbacks=[CommandHandler('cancel', commands.assign_cancel)]
     ))
