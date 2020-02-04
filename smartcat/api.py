@@ -9,7 +9,7 @@ This module contains classes that make http requests to SmartCAT
 
 Original project at https://github.com/gilyaev/smartcat-python-sdk
 
-Modified by Andrey Kravchuk https://github.com/yakninja
+Modified by Andrey Kravchuk https://github.com/yakninja (added account part, some methods etc)
 
 """
 
@@ -434,10 +434,5 @@ class Document(BaseResource):
 
 
 class Account(BaseResource):
-    def find_executives_by_name(self, name):
-        params = {
-            "skip": 0,
-            "limit": 10,
-            "searchString": name
-        }
+    def search_my_team(self, params):
         return self.send_post_request('/api/integration/v1/account/searchMyTeam', json=params)

@@ -3,12 +3,25 @@ import json
 import logging
 import re
 
+from telegram import ReplyKeyboardRemove
+from telegram.ext import ConversationHandler
+
+import constants
 from config import *
 from smartcat import SmartCAT, SmartCATWeb, SmartcatException
 from strings import *
 
+logger = logging.getLogger(__name__)
+
 
 def get_document_by_name(update, name_or_id):
+    """Get document list from API and look there for a document with a name (or id).
+    Will make a reply from the bot if something goes wrong or the document was not found
+
+    :param update: Update object of the bot.
+    :param name_or_id: Document id or name, case insensitive.
+    :return str
+    """
     sc_api = SmartCAT(SMARTCAT_API_USERNAME, SMARTCAT_API_PASSWORD)
     try:
         document = sc_api.project.get_document_by_name(SMARTCAT_PROJECT_ID, name_or_id)
@@ -26,6 +39,14 @@ def get_document_by_name(update, name_or_id):
 
 
 def get_document_and_list_id_by_name(update, name_or_id):
+    """Get document list from API and look there for a document with a name (or id).
+    Will also create a document list id (a thing in smartcat which is used to assign/unassign executives)
+    Will make a reply from the bot if something goes wrong or the document was not found
+
+    :param update: Update object of the bot.
+    :param name_or_id: Document id or name, case insensitive.
+    :return (dict, str): document, list_id
+    """
     document = get_document_by_name(update, name_or_id)
     if not document:
         return None, None
@@ -44,3 +65,108 @@ def get_document_and_list_id_by_name(update, name_or_id):
         return document, None
 
     return document, list_id
+
+
+def choose_executives(update, context):
+    """Get a list of executives by names and put them into context
+    If something goes wrong, replies with a warning message and redirects user to the same stage
+
+    :param update: Update object of the bot.
+    :param context:
+    :return str: reply from bot
+    """
+    logger.info("User %s: choose_executives", update.message.from_user.username)
+    names = update.message.text.split(',')
+    if len(names) == 0:
+        update.message.reply_text("Я не могу работать с пустым списком. "
+                                  "Напиши имена через запятую, или /cancel для выхода",
+                                  reply_markup=ReplyKeyboardRemove())
+        return constants.STATE_CHOOSE_EXECUTIVES
+
+    sc_web = SmartCATWeb(SMARTCAT_SESSION_FILE, SMARTCAT_EMAIL, SMARTCAT_PASSWORD,
+                         SMARTCAT_API_USERNAME, SMARTCAT_API_PASSWORD)
+    reply = ''
+    i = 1
+    found_count = 0
+    context.user_data['executives'] = []
+    for name in names:
+        name = name.strip()
+        logger.info("Getting info on {0}".format(name))
+        response = sc_web.api.account.search_my_team({
+            "skip": 0,
+            "limit": 10,
+            "searchString": name
+        })
+        logger.info("Response code: {0}".format(response.status_code))
+        if response.status_code != 200:
+            update.message.reply_text(SHIT_HAPPENS)
+            return ConversationHandler.END
+        data = json.loads(response.content, encoding='utf-8')
+        logger.info("Found {0} results".format(len(data)))
+        if len(data) == 0:
+            reply += "{0}. {1}: не найден\n".format(i, name)
+        else:
+            found_count += 1
+            found_name = data[0]['firstName'] + ' ' + data[0]['lastName']
+            context.user_data['executives'].append(data[0])
+            if len(data) > 1:
+                reply += "{0}. {1}: найдено несколько вариантов, используем первый: {2} ({3})\n".format(
+                    i,
+                    name,
+                    found_name,
+                    data[0]['id'],
+                )
+            else:
+                reply += "{0}. {1}: найден ({2})\n".format(
+                    i,
+                    found_name,
+                    data[0]['id'],
+                )
+        i += 1
+        return reply
+
+
+def choose_documents(update, context):
+    """Get a list of documents by names/ids and put them into context
+    If something goes wrong, replies with a warning message and redirects user to the same stage
+
+    :param update: Update object of the bot.
+    :param context:
+    :return str: reply from bot
+    """
+    sc_api = SmartCAT(SMARTCAT_API_USERNAME, SMARTCAT_API_PASSWORD)
+    names_or_ids = update.message.text.lower().strip()
+    documents = []
+    response = sc_api.project.get(SMARTCAT_PROJECT_ID)
+    if response.status_code != 200:
+        update.message.reply_text(SHIT_HAPPENS + "\nПопробуй еще раз или введи /cancel для выхода")
+        return constants.STATE_CHOOSE_DOCUMENT
+
+    project_data = json.loads(response.content.decode('utf-8'))
+    if not project_data:
+        update.message.reply_text(SHIT_HAPPENS + "\nПопробуй еще раз или введи /cancel для выхода")
+        return constants.STATE_CHOOSE_DOCUMENT
+
+    if names_or_ids == 'all':
+        documents = project_data['documents']
+    else:
+        names_or_ids = [s.lower().strip() for s in names_or_ids.split("\n")]
+        for d in project_data['documents']:
+            if d['id'].lower() in names_or_ids or d['name'].lower().strip() in names_or_ids:
+                logger.info("Document added: {0} {1}".format(d['id'], d['name']))
+                documents.append(d)
+
+    if len(documents) == 0:
+        update.message.reply_text(NOTHING_FOUND + "\nПопробуй еще раз или введи /cancel для выхода")
+        return constants.STATE_CHOOSE_DOCUMENT
+
+    context.user_data['documents'] = documents
+
+    if len(documents) == 1:
+        reply = "Ок, я нашел одну главу: {0} ({1})".format(documents[0]['name'], documents[0]['id'])
+    else:
+        reply = "Ок, я нашел {0} глав.\n".format(len(documents))
+        for d in documents:
+            reply += "- {0} {1}\n".format(d['name'], d['id'])
+
+    return reply
