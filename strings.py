@@ -4,6 +4,7 @@ START_HELLO = 'Привет! :) Напиши /help, если нужен спис
 HELLO_THERE = "привет :)"
 HELLO_REGEX = '(привет|здравст|здраст)'
 OR_REGEX = "(.+?) или (.+?)[?]*$"
+CHAPTER_REGEX = "глава\\s+(.+)$"
 I_DONT_UNDERSTAND = "Я не понимаю"
 SHIT_HAPPENS = "Что-то пошло не так"
 NOTHING_FOUND = "Не могу найти что ты ищешь"

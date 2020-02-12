@@ -126,6 +126,31 @@ def choose_executives(update, context):
         return reply
 
 
+def find_chapter_starting_as(name, project_data=None):
+    """Find first chapter with name starting with :name
+    :param name:
+    :param project_data:
+    :return dict
+    """
+    if project_data is None:
+        sc_api = SmartCAT(SMARTCAT_API_USERNAME, SMARTCAT_API_PASSWORD)
+        response = sc_api.project.get(SMARTCAT_PROJECT_ID)
+        if response.status_code != 200:
+            return None
+
+        project_data = json.loads(response.content.decode('utf-8'))
+        if not project_data:
+            return None
+
+    name = name.strip().lower()
+    for d in project_data['documents']:
+        document_name = d['name'].lower()
+        if document_name[:len(name)] == name:
+            return d
+
+    return None
+
+
 def choose_documents(update, context):
     """Get a list of documents by names/ids and put them into context
     If something goes wrong, replies with a warning message and redirects user to the same stage

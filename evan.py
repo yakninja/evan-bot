@@ -1,16 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import logging
 import random
-import re
 
 import markovify
-from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters, ConversationHandler)
+from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters)
 
 import commands
-import constants
-from config import TOKEN, NAMES
-from strings import *
+from helpers import *
 
 updater = None
 
@@ -87,7 +83,18 @@ def message(update, context):
             else:
                 reply_text = random.choice(choices.groups())
         else:
-            reply_text = text_model.make_short_sentence(200)
+            # todo: move this to module
+            chapter = re.match(CHAPTER_REGEX, message_text)
+            if chapter:
+                document = find_chapter_starting_as(chapter.groups()[0].strip())
+                if document is None:
+                    reply_text = NOTHING_FOUND
+                else:
+                    reply_text = document['name']
+                    if document['name'] in CHAPTER_DOCS:
+                        reply_text += "\nСсылка на редактирование: {0}".format(CHAPTER_DOCS[document['name']])
+            else:
+                reply_text = text_model.make_short_sentence(200)
 
     if reply_text:
         update.message.reply_text(reply_text)
@@ -98,7 +105,7 @@ def error(update, context):
     logger.warning('Update "%s" caused error "%s"', update, context.error)
 
 
-text_model = False
+text_model = None
 
 
 def main():
