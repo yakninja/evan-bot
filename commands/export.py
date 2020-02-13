@@ -86,7 +86,7 @@ def export(update, context):
                 next(reader)  # skip header
                 for row in reader:
                     try:
-                        document_text += row[1].strip() + "\n\n"
+                        document_text += row[1].strip() + "\n"
                     except IndexError:
                         logger.warning('Index out of range in CSV')
                 break
@@ -133,8 +133,10 @@ def process_document_text(s):
     join_paragraphs = re.compile("\\s*<<\\s*", re.MULTILINE)
     s = join_paragraphs.sub(" ", s)
 
+    s = s.replace("\r\n", "\n")
     extra_breaks = re.compile("\n{2,}")
     s = extra_breaks.sub("\n", s)
+    s = s.replace("\n", "\r\n")
 
     extra_spaces = re.compile("[ \t]{2,}")
     s = extra_spaces.sub(" ", s)
