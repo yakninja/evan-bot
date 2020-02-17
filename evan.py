@@ -146,7 +146,8 @@ def main():
     dp.add_handler(ConversationHandler(
         entry_points=[CommandHandler('export', commands.export_start)],
         states={
-            constants.STATE_EXPORT: [MessageHandler(Filters.text, commands.export)]
+            constants.STATE_EXPORT_CHOOSE_FORMAT: [MessageHandler(Filters.text, commands.export_choose_format)],
+            constants.STATE_EXPORT: [MessageHandler(Filters.text, commands.export)],
         },
         fallbacks=[CommandHandler('cancel', commands.export_cancel)]
     ))

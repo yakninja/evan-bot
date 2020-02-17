@@ -1,6 +1,7 @@
+lxml
 flask
 botocore
-python-telegram-bot==12.3.0
+python-telegram-bot
 markovify
 requests
 boto3

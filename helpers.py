@@ -3,6 +3,7 @@ import json
 import logging
 import re
 
+from lxml import etree
 from telegram import ReplyKeyboardRemove
 from telegram.ext import ConversationHandler
 
@@ -12,6 +13,16 @@ from smartcat import SmartCAT, SmartCATWeb, SmartcatException
 from strings import *
 
 logger = logging.getLogger(__name__)
+
+
+def lxml_stringify_children(node):
+    """
+    Returns XML contents of the node
+    :param node:
+    :return:
+    """
+    return (node.text if node.text is not None else '') + \
+        ''.join((etree.tostring(child, encoding='unicode') for child in node))
 
 
 def get_document_by_name(update, name_or_id):
