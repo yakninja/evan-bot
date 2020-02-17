@@ -33,10 +33,15 @@ def assign_choose_executives(update, context):
         update.message.reply_text(reply, reply_markup=ReplyKeyboardRemove())
         return ConversationHandler.END
     else:
-        reply += "\nЕсли все в порядке - введи название или id главы (можно несколько, по одному на строку)\n" \
-                 "Чтобы выбрать все главы, введи \"all\"\n" \
-                 "Для выхода введи /cancel"
-        update.message.reply_text(reply, reply_markup=ReplyKeyboardRemove())
+        reply += "\nКакие главы?"
+        reply_keyboard = [[
+            ALL_CHAPTERS,
+            ACTIVE_CHAPTERS,
+            CHAPTERS_BEING_TRANSLATED,
+            CHAPTERS_BEING_EDITED,
+            '/cancel',
+        ]]
+        update.message.reply_text(reply, reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
         return constants.STATE_CHOOSE_DOCUMENT
 
 
@@ -47,7 +52,11 @@ def assign_choose_document(update, context):
     reply = choose_documents(update, context)
 
     reply += "\nТеперь выбери куда назначаем этих людей (или /cancel для выхода)"
-    reply_keyboard = [['Переводчики', 'Редакторы']]
+    reply_keyboard = [[
+        'Переводчики',
+        'Редакторы',
+        '/cancel',
+    ]]
     update.message.reply_text(reply, reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
     return constants.STATE_CHOOSE_STAGE
 

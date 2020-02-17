@@ -126,6 +126,84 @@ def choose_executives(update, context):
         return reply
 
 
+def choose_documents(update, context):
+    """Get a list of documents by names/ids and put them into context
+    If something goes wrong, replies with a warning message and redirects user to the same stage
+
+    :param update: Update object of the bot.
+    :param context:
+    :return str: reply from bot
+    """
+    sc_api = SmartCAT(SMARTCAT_API_USERNAME, SMARTCAT_API_PASSWORD)
+    names_or_ids = update.message.text.lower().strip()
+    documents = []
+    response = sc_api.project.get(SMARTCAT_PROJECT_ID)
+    if response.status_code != 200:
+        update.message.reply_text(SHIT_HAPPENS + "\nПопробуй еще раз или введи /cancel для выхода")
+        return constants.STATE_CHOOSE_DOCUMENT
+
+    project_data = json.loads(response.content.decode('utf-8'))
+    if not project_data:
+        update.message.reply_text(SHIT_HAPPENS + "\nПопробуй еще раз или введи /cancel для выхода")
+        return constants.STATE_CHOOSE_DOCUMENT
+
+    logger.info('names_or_ids = {}'.format(names_or_ids))
+    if names_or_ids == ALL_CHAPTERS.lower():
+        documents = project_data['documents']
+    elif names_or_ids == ACTIVE_CHAPTERS.lower():
+        for d in project_data['documents']:
+            logger.info("{} - {}".format(d['name'], get_document_stage(d)))
+            if get_document_stage(d) < constants.CHAPTER_STATE_FINAL_EDITING:
+                logger.info("Document added: {0} {1}".format(d['id'], d['name']))
+                documents.append(d)
+    elif names_or_ids == CHAPTERS_BEING_TRANSLATED.lower():
+        for d in project_data['documents']:
+            if get_document_stage(d) == constants.CHAPTER_STATE_TRANSLATION:
+                logger.info("Document added: {0} {1}".format(d['id'], d['name']))
+                documents.append(d)
+    elif names_or_ids == CHAPTERS_BEING_EDITED.lower():
+        for d in project_data['documents']:
+            if get_document_stage(d) == constants.CHAPTER_STATE_EDITING:
+                logger.info("Document added: {0} {1}".format(d['id'], d['name']))
+                documents.append(d)
+    else:
+        names_or_ids = [s.lower().strip() for s in names_or_ids.split("\n")]
+        for d in project_data['documents']:
+            if d['id'].lower() in names_or_ids or d['name'].lower().strip() in names_or_ids:
+                logger.info("Document added: {0} {1}".format(d['id'], d['name']))
+                documents.append(d)
+
+    if len(documents) == 0:
+        update.message.reply_text(NOTHING_FOUND + "\nПопробуй еще раз или введи /cancel для выхода")
+        return constants.STATE_CHOOSE_DOCUMENT
+
+    context.user_data['documents'] = documents
+
+    if len(documents) == 1:
+        reply = "Ок, я нашел одну главу: {0} ({1})".format(documents[0]['name'], documents[0]['id'])
+    else:
+        reply = "Ок, я нашел {0} глав.\n".format(len(documents))
+        for d in documents:
+            stage_name = constants.CHAPTER_STAGE_NAMES[get_document_stage(d)]
+            reply += "- {0}: {1} {2}\n".format(stage_name, d['name'], d['id'])
+
+    return reply
+
+
+def get_document_stage(document):
+    """
+    Get document workflow stage. We can't really get it from API so we're making some guesses
+    :param document:
+    :return:
+    """
+    if document['status'] == constants.CHAPTER_STATUS_COMPLETED:
+        return constants.CHAPTER_STATE_FINAL_EDITING
+    translation_stage = document['workflowStages'][0]
+    if translation_stage['progress'] > 99:
+        return constants.CHAPTER_STATE_EDITING
+    return constants.CHAPTER_STATE_TRANSLATION
+
+
 def find_chapter_starting_as(name, project_data=None):
     """Find first chapter with name starting with :name
     :param name:
@@ -149,49 +227,3 @@ def find_chapter_starting_as(name, project_data=None):
             return d
 
     return None
-
-
-def choose_documents(update, context):
-    """Get a list of documents by names/ids and put them into context
-    If something goes wrong, replies with a warning message and redirects user to the same stage
-
-    :param update: Update object of the bot.
-    :param context:
-    :return str: reply from bot
-    """
-    sc_api = SmartCAT(SMARTCAT_API_USERNAME, SMARTCAT_API_PASSWORD)
-    names_or_ids = update.message.text.lower().strip()
-    documents = []
-    response = sc_api.project.get(SMARTCAT_PROJECT_ID)
-    if response.status_code != 200:
-        update.message.reply_text(SHIT_HAPPENS + "\nПопробуй еще раз или введи /cancel для выхода")
-        return constants.STATE_CHOOSE_DOCUMENT
-
-    project_data = json.loads(response.content.decode('utf-8'))
-    if not project_data:
-        update.message.reply_text(SHIT_HAPPENS + "\nПопробуй еще раз или введи /cancel для выхода")
-        return constants.STATE_CHOOSE_DOCUMENT
-
-    if names_or_ids == 'all':
-        documents = project_data['documents']
-    else:
-        names_or_ids = [s.lower().strip() for s in names_or_ids.split("\n")]
-        for d in project_data['documents']:
-            if d['id'].lower() in names_or_ids or d['name'].lower().strip() in names_or_ids:
-                logger.info("Document added: {0} {1}".format(d['id'], d['name']))
-                documents.append(d)
-
-    if len(documents) == 0:
-        update.message.reply_text(NOTHING_FOUND + "\nПопробуй еще раз или введи /cancel для выхода")
-        return constants.STATE_CHOOSE_DOCUMENT
-
-    context.user_data['documents'] = documents
-
-    if len(documents) == 1:
-        reply = "Ок, я нашел одну главу: {0} ({1})".format(documents[0]['name'], documents[0]['id'])
-    else:
-        reply = "Ок, я нашел {0} глав.\n".format(len(documents))
-        for d in documents:
-            reply += "- {0} {1}\n".format(d['name'], d['id'])
-
-    return reply
