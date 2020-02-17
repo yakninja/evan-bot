@@ -7,6 +7,7 @@ from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters)
 
 import commands
 from helpers import *
+from links import LINKS
 
 updater = None
 
@@ -90,9 +91,12 @@ def message(update, context):
                 if document is None:
                     reply_text = NOTHING_FOUND
                 else:
-                    reply_text = document['name']
+                    stage = constants.CHAPTER_STAGE_NAMES[get_document_stage(document)]
+                    reply_text = "{0}, статус: {1}".format(document['name'], stage)
+                    if document['name'] in LINKS:
+                        reply_text += "\nОригинал: {}".format(LINKS[document['name']])
                     if document['name'] in CHAPTER_DOCS:
-                        reply_text += "\nСсылка на редактирование: {0}".format(CHAPTER_DOCS[document['name']])
+                        reply_text += "\nСсылка на редактирование: {}".format(CHAPTER_DOCS[document['name']])
             else:
                 reply_text = text_model.make_short_sentence(200)
 
