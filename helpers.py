@@ -185,7 +185,7 @@ def choose_documents(update, context):
         reply = "Ок, я нашел {0} глав.\n".format(len(documents))
         for d in documents:
             stage_name = constants.CHAPTER_STAGE_NAMES[get_document_stage(d)]
-            reply += "- {0}: {1} {2}\n".format(stage_name, d['name'], d['id'])
+            reply += "- {0}: {1}\n".format(stage_name, d['name'])
 
     return reply
 
