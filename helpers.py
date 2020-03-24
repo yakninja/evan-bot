@@ -134,7 +134,8 @@ def choose_executives(update, context):
                     data[0]['id'],
                 )
         i += 1
-        return reply
+
+    return reply
 
 
 def choose_documents(update, context):

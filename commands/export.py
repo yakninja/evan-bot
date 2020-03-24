@@ -165,14 +165,46 @@ def export(update, context):
 
         root = lxml.html.fromstring(original_html)
         elements = root.xpath("//div[@class='entry-content']/p")
-        paragraphs = []
+        paragraphs_source = []
         for e in elements:
             p = lxml_stringify_children(e)
             if 'https://pactwebserial.wordpress.com' not in p:  # skip navigation
-                paragraphs.append(p)
+                paragraphs_source.append(p)
 
-        logger.info('{} - {}'.format(len(paragraphs_original), len(paragraphs)))
+        logger.info('{} - {}'.format(len(paragraphs_original), len(paragraphs_source)))
         document_text = ''
+
+        # ok now we try to make pony formatted text from source with original as a reference
+
+        while len(paragraphs_source) or len(paragraphs_original) or len(paragraphs_translation):
+            source_chunk = []
+            original_chunk = []
+            translation_chunk = []
+
+            while len(paragraphs_source) > 0 and \
+                    chunk_length(source_chunk) < constants.PONY_CHUNK_LENGTH and \
+                    chunk_length(original_chunk) < constants.PONY_CHUNK_LENGTH:
+                source_chunk.append(paragraphs_source.pop(0))
+                if len(paragraphs_original) == 0:
+                    break
+                original_chunk.append(paragraphs_original.pop(0))
+                translation_chunk.append(paragraphs_translation.pop(0))
+
+            while chunk_length(source_chunk) - constants.PONY_CHUNK_SENSITIVITY > chunk_length(original_chunk):
+                if len(paragraphs_original) == 0:
+                    break
+                original_chunk.append(paragraphs_original.pop(0))
+                translation_chunk.append(paragraphs_translation.pop(0))
+
+            document_text += '<div style="font-size:10px;color:#ccc">\n' + \
+                             "\n".join(["<p>{}</p>".format(p) for p in source_chunk]) + \
+                             "\n</div>\n" + \
+                             '<div style="font-size:12px;color:#000">\n' + \
+                             "\n".join(["<p>{}</p>".format(p) for p in translation_chunk]) + \
+                             "\n</div>\n"
+
+            if len(paragraphs_source) == 0:
+                break
 
     # upload to s3 and get the public link
 
@@ -223,3 +255,8 @@ def process_document_text(s):
     s = extra_spaces.sub(" ", s)
 
     return s.strip()
+
+
+def chunk_length(chunk):
+    strip_tags = re.compile('<.*?>')
+    return len(strip_tags.sub('', ''.join(chunk)))
