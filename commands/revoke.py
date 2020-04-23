@@ -46,7 +46,7 @@ def revoke_choose_document(update, context):
 
     reply = choose_documents(update, context)
 
-    reply += "\nТеперь выбери откуда убираем этих людей (или /cancel для выхода)"
+    reply += "\nТеперь выбери с какой роли убираем этих людей из этих глав (или /cancel для выхода)"
     reply_keyboard = [['Переводчики', 'Редакторы']]
     update.message.reply_text(reply, reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
     return constants.STATE_CHOOSE_STAGE

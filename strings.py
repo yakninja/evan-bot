@@ -19,6 +19,7 @@ CLEARING_EXECUTIVES_DONE = "Я удалил из главы {0} {1} исполн
 OK_BYE = "Ладно, пока!"
 ENTER_THE_DOCUMENT_NAME_ID_OR_CANCEL = "Напиши название/ID документа, или /cancel для выхода"
 ALL_CHAPTERS = "Все главы"
+ALL = "all"
 ACTIVE_CHAPTERS = "Активные"
 CHAPTERS_BEING_TRANSLATED = "Перевод"
 CHAPTERS_BEING_EDITED = "Редактирование"

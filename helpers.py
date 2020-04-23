@@ -22,7 +22,7 @@ def lxml_stringify_children(node):
     :return:
     """
     return (node.text if node.text is not None else '') + \
-        ''.join((etree.tostring(child, encoding='unicode') for child in node))
+           ''.join((etree.tostring(child, encoding='unicode') for child in node))
 
 
 def get_document_by_name(update, name_or_id):
@@ -151,16 +151,16 @@ def choose_documents(update, context):
     documents = []
     response = sc_api.project.get(SMARTCAT_PROJECT_ID)
     if response.status_code != 200:
-        update.message.reply_text(SHIT_HAPPENS + "\nПопробуй еще раз или введи /cancel для выхода")
+        update.message.reply_text(SHIT_HAPPENS + "\nВведи названия глав еще раз или /cancel для выхода")
         return constants.STATE_CHOOSE_DOCUMENT
 
     project_data = json.loads(response.content.decode('utf-8'))
     if not project_data:
-        update.message.reply_text(SHIT_HAPPENS + "\nПопробуй еще раз или введи /cancel для выхода")
+        update.message.reply_text(SHIT_HAPPENS + "\nВведи названия глав еще раз или /cancel для выхода")
         return constants.STATE_CHOOSE_DOCUMENT
 
     logger.info('names_or_ids = {}'.format(names_or_ids))
-    if names_or_ids == ALL_CHAPTERS.lower():
+    if names_or_ids == ALL_CHAPTERS.lower() or names_or_ids == ALL.lower():
         documents = project_data['documents']
     elif names_or_ids == ACTIVE_CHAPTERS.lower():
         for d in project_data['documents']:
@@ -186,7 +186,7 @@ def choose_documents(update, context):
                 documents.append(d)
 
     if len(documents) == 0:
-        update.message.reply_text(NOTHING_FOUND + "\nПопробуй еще раз или введи /cancel для выхода")
+        update.message.reply_text(NOTHING_FOUND + "\nВведи названия глав еще раз или /cancel для выхода")
         return constants.STATE_CHOOSE_DOCUMENT
 
     context.user_data['documents'] = documents

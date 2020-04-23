@@ -51,7 +51,7 @@ def assign_choose_document(update, context):
 
     reply = choose_documents(update, context)
 
-    reply += "\nТеперь выбери куда назначаем этих людей (или /cancel для выхода)"
+    reply += "\nТеперь выбери на какую роль назначаем этих людей в эти главы (или /cancel для выхода)"
     reply_keyboard = [[
         'Переводчики',
         'Редакторы',
