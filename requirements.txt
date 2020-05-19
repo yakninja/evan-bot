@@ -1,8 +1,5 @@
-lxml
-flask
-botocore
-python-telegram-bot
-markovify
-requests
+# serverless-python-requirements will strip boto3, but we have it here to make local
+# testing tools happy.
 boto3
-python-slugify
+markovify
+python-telegram-bot
