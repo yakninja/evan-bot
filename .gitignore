@@ -21,6 +21,9 @@ var/
 .installed.cfg
 *.egg
 
+# Config
+config.py
+
 # Dev
 .mypy_cache/
 .pytest_cache/

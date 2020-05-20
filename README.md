@@ -1,3 +1,7 @@
+## Config
+
+Copy config.dist.py -> config.py, edit
+
 ## Deploy
 
 ```bash

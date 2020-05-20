@@ -3,3 +3,6 @@
 boto3
 markovify
 python-telegram-bot
+python-slugify
+lxml
+requests

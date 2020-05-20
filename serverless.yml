@@ -31,7 +31,7 @@ functions:
     handler: handlers/webhook.handler
     description: "Webhook handler"
     memorySize: 128
-    timeout: 5
+    timeout: 30
     events:
       - http:
           path: "${env:WEBHOOK_PATH, 'webhook'}"

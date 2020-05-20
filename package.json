@@ -2,7 +2,9 @@
   "name": "evan-bot",
   "description": "",
   "version": "0.0.1",
-  "dependencies": {},
+  "dependencies": {
+    "serverless": "^1.71.1"
+  },
   "devDependencies": {
     "serverless-python-requirements": "^5.1.0"
   },
