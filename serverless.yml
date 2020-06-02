@@ -12,7 +12,7 @@ custom:
 
 provider:
   name: aws
-  runtime: python3.7
+  runtime: python3.6
   stage: ${self:custom.stage}
   region: eu-west-1
   environment:
@@ -25,6 +25,7 @@ provider:
 package:
   exclude:
     - env/**
+    - node_modules/**
 
 functions:
   webhook:

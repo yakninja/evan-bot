@@ -3,12 +3,12 @@ import json
 import logging
 import re
 
-# from lxml import etree
 from telegram import ReplyKeyboardRemove
 from telegram.ext import ConversationHandler
 
 import constants
 from config import *
+from lxml import etree
 from smartcat import SmartCAT, SmartCATWeb, SmartcatException
 from strings import *
 
