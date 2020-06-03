@@ -16,6 +16,15 @@ logging.root.setLevel(logging.getLevelName(log_level))  # type: ignore
 logger = logging.getLogger(__name__)
 
 
+def bot_name_pattern():
+    """Used to determine bot name mention in is_spoken_to()"""
+    return "\\b(" + \
+           "|".join(NAMES) + \
+           "|" + bot.first_name.lower() + \
+           "|" + bot.username.lower() + \
+           ")[ ,.!?]"
+
+
 def normalize_message(message_text):
     """Remove bot name, extra spaces etc"""
     message_text = message_text.lower()
