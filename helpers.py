@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 import json
+import logging
+import os
 import re
 
 from telegram import ReplyKeyboardRemove
 from telegram.ext import ConversationHandler
 
 import constants
-from bot import *
+from config import *
 from lxml import etree
 from smartcat import SmartCAT, SmartCATWeb, SmartcatException
 from strings import *
@@ -14,26 +16,6 @@ from strings import *
 log_level = os.environ.get('LOG_LEVEL', 'INFO')
 logging.root.setLevel(logging.getLevelName(log_level))  # type: ignore
 logger = logging.getLogger(__name__)
-
-
-def bot_name_pattern():
-    """Used to determine bot name mention in is_spoken_to()"""
-    return "\\b(" + \
-           "|".join(NAMES) + \
-           "|" + bot.first_name.lower() + \
-           "|" + bot.username.lower() + \
-           ")[ ,.!?]"
-
-
-def normalize_message(message_text):
-    """Remove bot name, extra spaces etc"""
-    message_text = message_text.lower()
-    message_text = message_text.replace('@' + bot.username.lower(), ' ').strip()
-    p = re.compile(bot_name_pattern())
-    message_text = p.sub(' ', message_text).strip()
-    p = re.compile('\\s+')
-    message_text = p.sub(' ', message_text).strip()
-    return message_text
 
 
 def lxml_stringify_children(node):

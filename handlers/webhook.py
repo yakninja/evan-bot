@@ -1,5 +1,6 @@
 from telegram import Update
 
+from bot import bot, dispatcher
 from helpers import *
 
 logger = logging.getLogger(__name__)
