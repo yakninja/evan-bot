@@ -2,7 +2,7 @@ import random
 
 import markovify
 
-from bot import bot
+from bot import evan
 from helpers import *
 from links import *
 
@@ -21,15 +21,15 @@ def bot_name_pattern():
     """Used to determine bot name mention in is_spoken_to()"""
     return "\\b(" + \
            "|".join(NAMES) + \
-           "|" + bot.first_name.lower() + \
-           "|" + bot.username.lower() + \
+           "|" + evan.first_name.lower() + \
+           "|" + evan.username.lower() + \
            ")[ ,.!?]"
 
 
 def normalize_message(message_text):
     """Remove bot name, extra spaces etc"""
     message_text = message_text.lower()
-    message_text = message_text.replace('@' + bot.username.lower(), ' ').strip()
+    message_text = message_text.replace('@' + evan.username.lower(), ' ').strip()
     p = re.compile(bot_name_pattern())
     message_text = p.sub(' ', message_text).strip()
     p = re.compile('\\s+')
@@ -52,7 +52,7 @@ def is_spoken_to(update, context):
         for mention in mentions:
             m = update.message.text[mention.offset + 1:mention.offset + mention.length]
             logger.info('mention: "%s"', m)
-            if m == bot.username:
+            if m == evan.username:
                 return True
 
     return False

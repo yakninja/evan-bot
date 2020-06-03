@@ -14,8 +14,8 @@ def error(update, context):
     logger.warning('Update "%s" caused error "%s"', update, context.error)
 
 
-bot = Bot(os.environ['TELEGRAM_TOKEN'])
-dispatcher = Dispatcher(bot, None, workers=0, use_context=True)
+evan = Bot(os.environ['TELEGRAM_TOKEN'])
+dispatcher = Dispatcher(evan, None, workers=0, use_context=True)
 dispatcher.add_handler(MessageHandler(Filters.text, message))
 dispatcher.add_error_handler(error)
 
