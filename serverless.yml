@@ -1,7 +1,9 @@
 service: evan-bot
+description: Evan Telegram bot
 
 plugins:
   - serverless-python-requirements
+
 custom:
   stage: "${opt:stage, env:SLS_STAGE, 'dev'}"
   log_level: "${env:LOG_LEVEL, 'INFO'}"
