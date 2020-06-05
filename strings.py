@@ -2,6 +2,7 @@
 
 START_HELLO = 'Привет! :) Напиши /help, если нужен список команд'
 HELLO_THERE = "привет :)"
+NEW_CHAT_MEMBER_GREETINGS = ['Привет, {}', '{}, привет, как дела?']
 HELLO_REGEX = '(привет|здравст|здраст)'
 OR_REGEX = "(.+?) или (.+?)[?]*$"
 CHAPTER_REGEX = "глава\\s+(.+)$"

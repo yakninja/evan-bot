@@ -1,15 +1,10 @@
-import logging
-import os
 import random
-import re
 
 import markovify
 from telegram import Bot
 from telegram.ext import (Dispatcher, CommandHandler, MessageHandler, Filters)
 
 import commands
-import constants
-from config import *
 from helpers import *
 from links import *
 from strings import *
@@ -70,6 +65,14 @@ def is_spoken_to(update, context):
     return False
 
 
+def greeting(update, context):
+    """Greeting new chat members"""
+    logger.info(update.message)
+    reply_text = random.choice(NEW_CHAT_MEMBER_GREETINGS).format(update.message.new_chat_members[0]['first_name'])
+    if reply_text:
+        update.message.reply_text(reply_text)
+
+
 def message(update, context):
     """Reply only if spoken to"""
     from_user = update.message.from_user.first_name
@@ -79,37 +82,37 @@ def message(update, context):
         from_user += ' @' + update.message.from_user.username
     logger.info('%s: "%s"', from_user, update.message.text)
 
-    if not is_spoken_to(update, context):
-        logger.info(update.message)
-        return
+    logger.info(update.message)
+    reply_text = None
 
     random.seed()
-    message_text = normalize_message(update.message.text)
-    if re.search(HELLO_REGEX, message_text):
-        reply_text = HELLO_THERE
-    else:
-        choices = re.match(OR_REGEX, message_text)
-        if choices:
-            if choices.groups()[0] == choices.groups()[1]:
-                reply_text = YOURE_MAKING_FUN_OF_ME
-            else:
-                reply_text = random.choice(choices.groups())
+    if is_spoken_to(update, context):
+        message_text = normalize_message(update.message.text)
+        if re.search(HELLO_REGEX, message_text):
+            reply_text = HELLO_THERE
         else:
-            # todo: move this to module
-            chapter = re.match(CHAPTER_REGEX, message_text)
-            if chapter:
-                document = find_chapter_starting_as(chapter.groups()[0].strip())
-                if document is None:
-                    reply_text = NOTHING_FOUND
+            choices = re.match(OR_REGEX, message_text)
+            if choices:
+                if choices.groups()[0] == choices.groups()[1]:
+                    reply_text = YOURE_MAKING_FUN_OF_ME
                 else:
-                    stage = constants.CHAPTER_STAGE_NAMES[get_document_stage(document)]
-                    reply_text = "{0}, статус: {1}".format(document['name'], stage)
-                    if document['name'] in LINKS:
-                        reply_text += "\nОригинал: {}".format(LINKS[document['name']])
-                    if document['name'] in CHAPTER_DOCS:
-                        reply_text += "\nСсылка на редактирование: {}".format(CHAPTER_DOCS[document['name']])
+                    reply_text = random.choice(choices.groups())
             else:
-                reply_text = text_model.make_short_sentence(200)
+                # todo: move this to module
+                chapter = re.match(CHAPTER_REGEX, message_text)
+                if chapter:
+                    document = find_chapter_starting_as(chapter.groups()[0].strip())
+                    if document is None:
+                        reply_text = NOTHING_FOUND
+                    else:
+                        stage = constants.CHAPTER_STAGE_NAMES[get_document_stage(document)]
+                        reply_text = "{0}, статус: {1}".format(document['name'], stage)
+                        if document['name'] in LINKS:
+                            reply_text += "\nОригинал: {}".format(LINKS[document['name']])
+                        if document['name'] in CHAPTER_DOCS:
+                            reply_text += "\nСсылка на редактирование: {}".format(CHAPTER_DOCS[document['name']])
+                else:
+                    reply_text = text_model.make_short_sentence(200)
 
     if reply_text:
         update.message.reply_text(reply_text)
@@ -159,6 +162,9 @@ dispatcher.add_handler(ConversationHandler(
     },
     fallbacks=[CommandHandler('cancel', commands.revoke_cancel)]
 ))
+
+# greeting new members
+dispatcher.add_handler(MessageHandler(Filters.status_update.new_chat_members, greeting))
 
 # default message handler
 dispatcher.add_handler(MessageHandler(Filters.text, message))
