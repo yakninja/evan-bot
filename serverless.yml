@@ -14,7 +14,7 @@ custom:
 
 provider:
   name: aws
-  runtime: python3.6
+  runtime: python3.7
   stage: ${self:custom.stage}
   region: eu-west-1
   environment:
