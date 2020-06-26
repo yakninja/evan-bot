@@ -14,7 +14,7 @@ ENTITY_TYPE_MENTION = 'mention'
 
 logger = logging.getLogger(__name__)
 
-# Build the Markov model for text answers
+# Build the Markov model for text answers. Will run on cold start only
 root = os.path.dirname(os.path.realpath(__file__))
 with open(os.path.join(root, "corpus.txt"), encoding="utf8") as f:
     text = f.read()
@@ -115,7 +115,7 @@ def message(update, context):
                     reply_text = text_model.make_short_sentence(200)
 
     if reply_text:
-        update.message.reply_text(reply_text)
+        update.message.reply_text(reply_text, disable_web_page_preview=True)
 
 
 def error(update, context):

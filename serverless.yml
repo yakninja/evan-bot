@@ -14,7 +14,7 @@ custom:
 
 provider:
   name: aws
-  runtime: python3.7
+  runtime: python3.6 # don't change; lxml is compiled with python3.6
   stage: ${self:custom.stage}
   region: eu-west-1
   environment:
