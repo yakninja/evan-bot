@@ -111,6 +111,9 @@ def message(update, context):
                             reply_text += "\nОригинал: {}".format(LINKS[document['name']])
                         if document['name'] in CHAPTER_DOCS:
                             reply_text += "\nСсылка на редактирование: {}".format(CHAPTER_DOCS[document['name']])
+                        if document['name'] in PUBLISHED_DOCS:
+                            for url in PUBLISHED_DOCS[document['name']]:
+                                reply_text += "\nОпубликовано: {}".format(url)
                 else:
                     reply_text = text_model.make_short_sentence(200)
 

@@ -211,6 +211,8 @@ def get_document_stage(document):
     :param document:
     :return:
     """
+    if document['name'] in PUBLISHED_DOCS:
+        return constants.CHAPTER_STATE_PUBLISHED
     if document['status'] == constants.CHAPTER_STATUS_COMPLETED:
         return constants.CHAPTER_STATE_FINAL_EDITING
     translation_stage = document['workflowStages'][0]
