@@ -47,3 +47,4 @@ node_modules/
 # Cruft
 .DS_Store
 /deploy.sh
+/deploy-dev.sh
