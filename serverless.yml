@@ -1,5 +1,4 @@
 service: evan-bot
-description: Evan Telegram bot
 
 plugins:
   - serverless-python-requirements
