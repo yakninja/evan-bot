@@ -36,3 +36,15 @@ To remove webhook:
 curl --request POST \
 --url https://api.telegram.org/bot{TELEGRAM_TOKEN}/deleteWebhook
 ```
+
+## Something's wrong
+
+See the webhook logs:
+
+```
+export AWS_PROFILE=...
+export TELEGRAM_TOKEN="..."
+export WEBHOOK_PATH="..."
+export SLS_STAGE=prod|dev
+serverless logs -t -f webhook
+```
