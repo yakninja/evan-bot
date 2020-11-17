@@ -18,7 +18,7 @@ from .api import SmartCAT, SmartcatException
 
 
 class SmartCATWeb(object):
-    BASE_URL = 'https://smartcat.ai'
+    BASE_URL = 'https://smartcat.com'
 
     def __init__(self, session_filename,
                  admin_email, admin_password,
@@ -99,3 +99,31 @@ class SmartCATWeb(object):
         else:
             return response
 
+    def reset_services(self, user_id):
+        """
+        Reset services (set "Do not calculate the cost of work") for user
+        :param user_id:
+        :return:
+        """
+        url = self.BASE_URL + '/users/services/languagePair?idOfMyTeamUser=%s' % user_id
+        data = {
+            "generalizedSourceLanguageId": 9,
+            "generalizedTargetLanguageId": 25,
+            "sourceLanguageDialects": [],
+            "targetLanguageDialects": [],
+            "services": [
+                {"serviceType": 1, "currency": None, "pricePerUnit": None, "isPaidExternally": True},
+                {"serviceType": 2, "currency": None, "pricePerUnit": None, "isPaidExternally": True},
+            ],
+            "specializations": []
+        }
+        response = self.session.put(url, json=data)
+        if response.status_code == 403:
+            logging.info(response.content)
+            self.sign_in()
+            self.session.put(url, json=data)
+
+        # ru <-> en
+        data["generalizedSourceLanguageId"] = 25
+        data["generalizedTargetLanguageId"] = 9
+        return self.session.put(url, json=data)

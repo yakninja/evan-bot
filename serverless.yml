@@ -32,7 +32,7 @@ functions:
   webhook:
     handler: handlers/webhook.handler
     description: "Webhook handler"
-    memorySize: 128
+    memorySize: 256
     timeout: 30
     events:
       - http:

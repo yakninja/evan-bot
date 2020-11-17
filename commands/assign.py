@@ -105,6 +105,14 @@ def assign_choose_stage(update, context):
         }
         response = sc_web.confirm_assignments(SMARTCAT_PROJECT_ID, list_id, stage, data)
         logger.info('confirm_assignments: {0}'.format(response.status_code))
+
+        # for all these users we need to check "Do not calculate the cost of work"
+        if len(ids):
+            logger.info('Checking "Do not calculate the cost of work"...')
+            for user_id in ids:
+                response = sc_web.reset_services(user_id)
+                logger.info('Status: %s' % response.status_code)
+
     if reply_count >= 10:
         reply += "...\n"
     update.message.reply_text(reply, reply_markup=ReplyKeyboardRemove())

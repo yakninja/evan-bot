@@ -16,9 +16,24 @@ logger = logging.getLogger(__name__)
 
 # Build the Markov model for text answers. Will run on cold start only
 root = os.path.dirname(os.path.realpath(__file__))
-with open(os.path.join(root, "corpus.txt"), encoding="utf8") as f:
-    text = f.read()
-text_model = markovify.Text(text, 2)
+corpus_model_file = '/tmp/corpus.tmp'
+corpus_file = os.path.join(root, "corpus.txt")
+if not os.path.isfile(corpus_model_file) \
+        or os.path.getmtime(corpus_model_file) != os.path.getmtime(corpus_file):
+    logger.info("Building model...")
+    with open(corpus_file, encoding="utf8") as f:
+        text = f.read()
+    text_model = markovify.Text(text, state_size=2, retain_original=False)
+    text_model.compile()
+    with open(corpus_model_file, 'w') as f:
+        f.write(text_model.chain.to_json())
+    mtime = os.path.getmtime(corpus_file)
+    os.utime(corpus_model_file, (mtime, mtime))
+else:
+    logger.info("Reading model chain...")
+    text_model = markovify.Text(state_size=2)
+    with open(corpus_model_file, 'r') as f:
+        text_model.chain.from_json(f.read())
 
 
 def bot_name_pattern():
