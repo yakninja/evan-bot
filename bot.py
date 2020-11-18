@@ -131,6 +131,12 @@ def message(update, context):
                                 reply_text += "\nОпубликовано: {}".format(url)
                 else:
                     reply_text = text_model.make_short_sentence(200)
+                    # the sentence is more meaningful if we get rid
+                    # of dialogue-like sentences
+                    if '—' in reply_text:
+                        reply_text = reply_text.strip(',— ')
+                        parts = reply_text.split('—')
+                        reply_text = parts[0].strip(',. ')
 
     if reply_text:
         update.message.reply_text(reply_text, disable_web_page_preview=True)
