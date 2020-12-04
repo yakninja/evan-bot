@@ -22,6 +22,8 @@ provider:
   stackTags:
     x-service: evan-bot
     x-stack: ${self:service}-${self:provider.stage}
+  apiGateway:
+    shouldStartNameWithService: true
 
 package:
   exclude:
