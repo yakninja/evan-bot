@@ -1,6 +1,7 @@
 import random
 import requests
 import re
+import time
 
 from telegram import Bot
 from telegram.ext import Dispatcher, CommandHandler, MessageHandler, Filters
@@ -9,19 +10,10 @@ import commands
 from helpers import *
 from links import *
 from strings import *
+from chatgpt import call_chatgpt
 
 CHAT_TYPE_PRIVATE = 'private'
 ENTITY_TYPE_MENTION = 'mention'
-CHATGPT_API_KEY = os.environ['CHATGPT_KEY']
-CHATGPT_API_URL = "https://api.openai.com/v1/chat/completions"
-CHATGPT_API_HEADERS = {
-    "Content-Type": "application/json",
-    "Authorization": f"Bearer {CHATGPT_API_KEY}",
-}
-CHATGPT_FILTER_PATTERNS = [
-    r'не могу',
-    r' вы '
-]
 
 logger = logging.getLogger(__name__)
 
@@ -79,32 +71,6 @@ def greeting(update, context):
         update.message.new_chat_members[0]['first_name'])
     if reply_text:
         update.message.reply_text(reply_text)
-
-
-def call_chatgpt(user, prompt, max_tokens=1000, stop=None, temperature=0.8):
-    data = {
-        "model": "gpt-3.5-turbo",
-        "messages": [{"role": "user", "name": user['username'], "content": prompt}],
-        "temperature": temperature,
-        "max_tokens": max_tokens,
-        "stop": stop,
-    }
-    tries = 10
-    message = None
-    while tries > 0:
-        tries -= 1
-        response = requests.post(
-            CHATGPT_API_URL, headers=CHATGPT_API_HEADERS, json=data)
-        response.raise_for_status()
-        response = response.json()
-        if 'choices' not in response:
-            return None
-        message = response["choices"][0]["message"]["content"]\
-            .strip('.').strip('"').strip()
-        print("\t", message)
-        if not any(re.search(pattern, message, re.IGNORECASE) for pattern in CHATGPT_FILTER_PATTERNS):
-            break
-    return message
 
 
 def message(update, context):

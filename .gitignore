@@ -43,6 +43,7 @@ node_modules/
 .settings/
 .project
 .pydevproject
+.vscode
 
 # Cruft
 .DS_Store
