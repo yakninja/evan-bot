@@ -13,12 +13,15 @@ custom:
 
 provider:
   name: aws
-  runtime: python3.6 # don't change; lxml is compiled with python3.6
+  # if you change the python runtime, lxml binaries need to be built.
+  # see instructions here: https://stackoverflow.com/a/64749142/222173
+  runtime: python3.8
   stage: ${self:custom.stage}
   region: eu-west-1
   environment:
     LOG_LEVEL: ${self:custom.log_level}
     TELEGRAM_TOKEN: ${env:TELEGRAM_TOKEN}
+    CHATGPT_KEY: ${env:CHATGPT_KEY}
   stackTags:
     x-service: evan-bot
     x-stack: ${self:service}-${self:provider.stage}
@@ -26,11 +29,17 @@ provider:
     shouldStartNameWithService: true
 
 package:
-  exclude:
-    - env/**
-    - node_modules/**
+  patterns:
+    - '!env/**'
+    - '!node_modules/**'
 
 functions:
+  # for this webhook to work, you need to set it (once after deploy)
+  # note the endpoint url, then:
+  # curl --request POST \
+  # --url https://api.telegram.org/bot{TELEGRAM_TOKEN}/setWebhook \
+  # --header 'content-type: application/json' \
+  # --data '{"url": "{ENDPOINT_URL}"}'
   webhook:
     handler: handlers/webhook.handler
     description: "Webhook handler"

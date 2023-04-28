@@ -382,7 +382,8 @@
 	xmlns:sch="http://www.ascc.net/xml/schematron"
     xmlns:iso="http://purl.oclc.org/dsdl/schematron" 
     xmlns:exsl="http://exslt.org/common"
-                extension-element-prefixes="exsl  msxsl"
+    xmlns:msxsl="urn:schemas-microsoft-com:xslt"
+    extension-element-prefixes="exsl  msxsl"
 	 >
 <!-- This program implements ISO Schematron, except for abstract patterns which require a preprocess. -->
   
@@ -527,9 +528,16 @@
 <!-- Using EXSLT with all modeles (except function module: not applicable) -->
 <xsl:template match="iso:schema[@queryBinding='exslt']" priority="10">
     <xsl:comment>This XSLT was automatically generated from a Schematron schema.</xsl:comment>
-    <axsl:stylesheet
-            xmlns:exsl="http://exslt.org/common"
-            extension-element-prefixes="date dyn exsl math random regexp set str">
+	<axsl:stylesheet
+ 	  	xmlns:date="http://exslt.org/dates-and-times"
+ 	  	xmlns:dyn="http://exslt.org/dynamic"
+		xmlns:exsl="http://exslt.org/common"
+		xmlns:math="http://exslt.org/math"
+   		xmlns:random="http://exslt.org/random"
+  		xmlns:regexp="http://exslt.org/regular-expressions"
+   		xmlns:set="http://exslt.org/sets"
+   		xmlns:str="http://exslt.org/strings"
+   		extension-element-prefixes="date dyn exsl math random regexp set str" >
 	
         <xsl:apply-templates select="iso:ns"/>
 	    <!-- Handle the namespaces before the version attribute: reported to help SAXON -->

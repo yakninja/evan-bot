@@ -9,7 +9,6 @@ This is a thin wrapper around cssselect 0.7 or later.
 from __future__ import absolute_import
 
 from . import etree
-
 try:
     import cssselect as external_cssselect
 except ImportError:

@@ -1,7 +1,6 @@
 # serverless-python-requirements will strip boto3, but we have it here to make local
 # testing tools happy.
-markovify
-python-telegram-bot
+python-telegram-bot==13.15
 python-slugify
 lxml
 requests

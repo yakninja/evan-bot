@@ -2,10 +2,10 @@
 of the pure-xslt 'skeleton' implementation.
 """
 
-import os.path
 import sys
+import os.path
+from lxml import etree as _etree # due to validator __init__ signature
 
-from lxml import etree as _etree  # due to validator __init__ signature
 
 # some compat stuff, borrowed from lxml.html
 try:
@@ -63,8 +63,8 @@ svrl_validation_errors = _etree.XPath(
 
 
 # RelaxNG validator for schematron schemas
-schematron_schema_valid = _etree.RelaxNG(_etree.parse(
-    os.path.join(_resources_dir, 'rng', 'iso-schematron.rng')))
+schematron_schema_valid = _etree.RelaxNG(
+    file=os.path.join(_resources_dir, 'rng', 'iso-schematron.rng'))
 
 
 def stylesheet_params(**kwargs):

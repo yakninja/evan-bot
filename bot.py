@@ -1,8 +1,9 @@
 import random
+import requests
+import re
 
-import markovify
 from telegram import Bot
-from telegram.ext import (Dispatcher, CommandHandler, MessageHandler, Filters)
+from telegram.ext import Dispatcher, CommandHandler, MessageHandler, Filters
 
 import commands
 from helpers import *
@@ -11,29 +12,18 @@ from strings import *
 
 CHAT_TYPE_PRIVATE = 'private'
 ENTITY_TYPE_MENTION = 'mention'
+CHATGPT_API_KEY = os.environ['CHATGPT_KEY']
+CHATGPT_API_URL = "https://api.openai.com/v1/chat/completions"
+CHATGPT_API_HEADERS = {
+    "Content-Type": "application/json",
+    "Authorization": f"Bearer {CHATGPT_API_KEY}",
+}
+CHATGPT_FILTER_PATTERNS = [
+    r'не могу',
+    r' вы '
+]
 
 logger = logging.getLogger(__name__)
-
-# Build the Markov model for text answers. Will run on cold start only
-root = os.path.dirname(os.path.realpath(__file__))
-corpus_model_file = '/tmp/corpus.tmp'
-corpus_file = os.path.join(root, "corpus.txt")
-if not os.path.isfile(corpus_model_file) \
-        or os.path.getmtime(corpus_model_file) != os.path.getmtime(corpus_file):
-    logger.info("Building model...")
-    with open(corpus_file, encoding="utf8") as f:
-        text = f.read()
-    text_model = markovify.Text(text, state_size=2, retain_original=False)
-    text_model.compile()
-    with open(corpus_model_file, 'w') as f:
-        f.write(text_model.chain.to_json())
-    mtime = os.path.getmtime(corpus_file)
-    os.utime(corpus_model_file, (mtime, mtime))
-else:
-    logger.info("Reading model chain...")
-    text_model = markovify.Text(state_size=2)
-    with open(corpus_model_file, 'r') as f:
-        text_model.chain.from_json(f.read())
 
 
 def bot_name_pattern():
@@ -48,7 +38,8 @@ def bot_name_pattern():
 def normalize_message(message_text):
     """Remove bot name, extra spaces etc"""
     message_text = message_text.lower()
-    message_text = message_text.replace('@' + bot.username.lower(), ' ').strip()
+    message_text = message_text.replace(
+        '@' + bot.username.lower(), ' ').strip()
     p = re.compile(bot_name_pattern())
     message_text = p.sub(' ', message_text).strip()
     p = re.compile('\\s+')
@@ -72,7 +63,8 @@ def is_spoken_to(update, context):
             return True
     else:
         for mention in mentions:
-            m = update.message.text[mention.offset + 1:mention.offset + mention.length]
+            m = update.message.text[mention.offset +
+                                    1:mention.offset + mention.length]
             logger.info('mention: "%s"', m)
             if m == bot.username:
                 return True
@@ -83,9 +75,36 @@ def is_spoken_to(update, context):
 def greeting(update, context):
     """Greeting new chat members"""
     logger.info(update.message)
-    reply_text = random.choice(NEW_CHAT_MEMBER_GREETINGS).format(update.message.new_chat_members[0]['first_name'])
+    reply_text = random.choice(NEW_CHAT_MEMBER_GREETINGS).format(
+        update.message.new_chat_members[0]['first_name'])
     if reply_text:
         update.message.reply_text(reply_text)
+
+
+def call_chatgpt(user, prompt, max_tokens=1000, stop=None, temperature=0.8):
+    data = {
+        "model": "gpt-3.5-turbo",
+        "messages": [{"role": "user", "name": user['username'], "content": prompt}],
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+        "stop": stop,
+    }
+    tries = 10
+    message = None
+    while tries > 0:
+        tries -= 1
+        response = requests.post(
+            CHATGPT_API_URL, headers=CHATGPT_API_HEADERS, json=data)
+        response.raise_for_status()
+        response = response.json()
+        if 'choices' not in response:
+            return None
+        message = response["choices"][0]["message"]["content"]\
+            .strip('.').strip('"').strip()
+        print("\t", message)
+        if not any(re.search(pattern, message, re.IGNORECASE) for pattern in CHATGPT_FILTER_PATTERNS):
+            break
+    return message
 
 
 def message(update, context):
@@ -116,30 +135,28 @@ def message(update, context):
                 # todo: move this to module
                 chapter = re.match(CHAPTER_REGEX, message_text)
                 if chapter:
-                    document = find_chapter_starting_as(chapter.groups()[0].strip())
+                    document = find_chapter_starting_as(
+                        chapter.groups()[0].strip())
                     if document is None:
                         reply_text = NOTHING_FOUND
                     else:
-                        stage = constants.CHAPTER_STAGE_NAMES[get_document_stage(document)]
-                        reply_text = "{0}, статус: {1}".format(document['name'], stage)
+                        stage = constants.CHAPTER_STAGE_NAMES[get_document_stage(
+                            document)]
+                        reply_text = "{0}, статус: {1}".format(
+                            document['name'], stage)
                         if document['name'] in LINKS:
-                            reply_text += "\nОригинал: {}".format(LINKS[document['name']])
+                            reply_text += "\nОригинал: {}".format(
+                                LINKS[document['name']])
                         if document['name'] in CHAPTER_DOCS:
-                            reply_text += "\nСсылка на редактирование: {}".format(CHAPTER_DOCS[document['name']])
+                            reply_text += "\nСсылка на редактирование: {}".format(
+                                CHAPTER_DOCS[document['name']])
                         if document['name'] in PUBLISHED_DOCS:
                             for url in PUBLISHED_DOCS[document['name']]:
                                 reply_text += "\nОпубликовано: {}".format(url)
                 else:
-                    reply_text = text_model.make_short_sentence(200)
-
-                    # the sentence is more meaningful if we get rid
-                    # of dialogue-like sentences
-                    if '—' in reply_text:
-                        reply_text = reply_text.strip(',— ')
-                        parts = reply_text.split('—')
-                        reply_text = parts[0]
-
-                    reply_text = reply_text.strip(',. ')
+                    reply_text = call_chatgpt(
+                        update.message.from_user, message_text)
+                    logger.info(reply_text)
 
     if reply_text:
         update.message.reply_text(reply_text, disable_web_page_preview=True)
@@ -157,7 +174,8 @@ dispatcher = Dispatcher(bot, None, workers=0, use_context=True)
 dispatcher.add_handler(CommandHandler("start", commands.start))
 dispatcher.add_handler(CommandHandler("help", commands.help))
 dispatcher.add_handler(CommandHandler("executives", commands.executives))
-dispatcher.add_handler(CommandHandler("clear_executives", commands.clear_executives))
+dispatcher.add_handler(CommandHandler(
+    "clear_executives", commands.clear_executives))
 dispatcher.add_handler(CommandHandler("stats", commands.stats))
 
 # Add conversation handlers
@@ -191,7 +209,8 @@ dispatcher.add_handler(ConversationHandler(
 ))
 
 # greeting new members
-dispatcher.add_handler(MessageHandler(Filters.status_update.new_chat_members, greeting))
+dispatcher.add_handler(MessageHandler(
+    Filters.status_update.new_chat_members, greeting))
 
 # default message handler
 dispatcher.add_handler(MessageHandler(Filters.text, message))
