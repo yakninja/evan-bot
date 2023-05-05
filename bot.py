@@ -84,6 +84,7 @@ def message(update, context):
 
     logger.info(update.message)
     reply_text = None
+    reply_to_message_id = update.message.message_id
 
     random.seed()
     if is_spoken_to(update, context):
@@ -120,12 +121,23 @@ def message(update, context):
                             for url in PUBLISHED_DOCS[document['name']]:
                                 reply_text += "\nОпубликовано: {}".format(url)
                 else:
+                    history = []
+                    reply_to_message = update.message.reply_to_message
+                    if reply_to_message and reply_to_message.from_user.is_bot:
+                        logger.info('This is a reply to message:')
+                        logger.info(reply_to_message)
+                        history.append(
+                            {"role": "system", "content": reply_to_message.text})
                     reply_text = call_chatgpt(
-                        update.message.from_user, message_text)
+                        update.message.from_user,
+                        message_text,
+                        history=history)
                     logger.info(reply_text)
 
     if reply_text:
-        update.message.reply_text(reply_text, disable_web_page_preview=True)
+        update.message.reply_text(reply_text,
+                                  disable_web_page_preview=True,
+                                  reply_to_message_id=reply_to_message_id)
 
 
 def error(update, context):

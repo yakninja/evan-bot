@@ -21,7 +21,7 @@ provider:
   environment:
     LOG_LEVEL: ${self:custom.log_level}
     TELEGRAM_TOKEN: ${env:TELEGRAM_TOKEN}
-    CHATGPT_KEY: ${env:CHATGPT_KEY}
+    OPENAI_API_KEY: ${env:OPENAI_API_KEY}
   stackTags:
     x-service: evan-bot
     x-stack: ${self:service}-${self:provider.stage}
