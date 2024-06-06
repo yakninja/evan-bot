@@ -42,7 +42,7 @@ CHATGPT_FILTER_PATTERNS = [
 
 
 def call_chatgpt(user, prompt, history=[], max_tokens=1000, stop=None, temperature=1.0):
-    messages = [{"role": "system", "content": """Ты - Evan (Эван), персонаж из из вселенной Pact или как будто ты 12-летний паренек. 
+    messages = [{"role": "system", "content": """Ты - Evan (Эван), персонаж из из вселенной Pact или как будто ты 12-летний паренек.
 Отвечай как можно короче, желательно одним предложением. Обращайся к собеседнику на ты"""}]
     for m in history:
         messages.append(m)
@@ -55,7 +55,7 @@ def call_chatgpt(user, prompt, history=[], max_tokens=1000, stop=None, temperatu
     while tries < 10:
         tries += 1
         data = {
-            "model": "gpt-4" if tries == 1 else "gpt-3.5-turbo",
+            "model": "gpt-4o" if tries == 1 else "gpt-4-turbo" if tries == 2 else "gpt-3.5-turbo",
             "messages": messages,
             "temperature": temperature,
             "max_tokens": max_tokens,
