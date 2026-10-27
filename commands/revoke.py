@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 
 def check_revoke_permission(update):
-    if update.message.from_user.username not in ADMIN_USERS:
+    if not is_admin(update.message.from_user):
         update.message.reply_text(YOU_HAVE_NO_POWER_OVER_ME)
         return False
     return True

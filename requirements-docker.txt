@@ -1,0 +1,5 @@
+-r requirements.txt
+# Existing export commands import the AWS SDK; Lambda used to supply it.
+boto3==1.43.119
+# python-telegram-bot 13.x / APScheduler still import pkg_resources.
+setuptools==80.10.2

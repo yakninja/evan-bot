@@ -6,7 +6,7 @@ from helpers import *
 
 def clear_executives(update, context):
     """List executives for the document"""
-    if update.message.from_user.username not in ADMIN_USERS:
+    if not is_admin(update.message.from_user):
         update.message.reply_text(YOU_HAVE_NO_POWER_OVER_ME)
         return
 

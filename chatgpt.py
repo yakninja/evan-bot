@@ -3,11 +3,16 @@ import re
 import random
 import logging
 import time
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 import requests
 
 logger = logging.getLogger(__name__)
 
 OPENAI_API_KEY = os.environ['OPENAI_API_KEY']
+CHATGPT_MODEL = os.environ.get("OPENAI_MODEL", "gpt-6-luna")
+CHATGPT_MAX_ATTEMPTS = 3
+CHATGPT_REQUEST_TIMEOUT = (2, 5)
 CHATGPT_API_URL = "https://api.openai.com/v1/chat/completions"
 CHATGPT_API_HEADERS = {
     "Content-Type": "application/json",
@@ -41,83 +46,93 @@ CHATGPT_FILTER_PATTERNS = [
 ]
 
 
-def call_chatgpt(user, prompt, history=[], max_tokens=1000, stop=None, temperature=1.0):
+def retry_delay(response, attempt):
+    """Honor server backoff only when it fits this synchronous webhook."""
+    delay = min(2 ** attempt + random.uniform(0, 0.25), 2)
+    retry_after = response.headers.get('Retry-After') if response is not None else None
+    if retry_after:
+        try:
+            server_delay = float(retry_after)
+        except ValueError:
+            try:
+                server_delay = (parsedate_to_datetime(retry_after) -
+                                datetime.now(timezone.utc)).total_seconds()
+            except (TypeError, ValueError, OverflowError):
+                server_delay = 0
+        delay = max(delay, server_delay)
+    return delay if delay <= 2 else None
+
+
+def call_chatgpt(user, prompt, history=None, max_tokens=1000, stop=None, temperature=1.0,
+                 on_success=None):
     messages = [{"role": "system", "content": """Ты - Evan (Эван), персонаж из из вселенной Pact или как будто ты 12-летний паренек.
 Отвечай как можно короче, желательно одним предложением. Обращайся к собеседнику на ты"""}]
-    for m in history:
-        messages.append(m)
+    messages.extend(history or [])
+    user_message = {"role": "user", "content": prompt}
+    if user['username']:
+        user_message['name'] = user['username']
+    messages.append(user_message)
 
-    messages.append({"role": "user", "name": user['username'], "content": prompt})
-
-    logger.info(messages)
-    tries = 0
+    data = {
+        "model": CHATGPT_MODEL,
+        "messages": messages,
+        "temperature": temperature,
+    }
+    if CHATGPT_MODEL == 'gpt-6-luna' or CHATGPT_MODEL.startswith('gpt-6-luna-'):
+        data['reasoning_effort'] = 'none'
+        data['max_completion_tokens'] = max_tokens
+    else:
+        data['max_tokens'] = max_tokens
+    if stop is not None:
+        data['stop'] = stop
     message = None
-    while tries < 10:
-        tries += 1
-        data = {
-            "model": "gpt-4o" if tries == 1 else "gpt-4-turbo" if tries == 2 else "gpt-3.5-turbo",
-            "messages": messages,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-            "stop": stop,
-        }
-        response = requests.post(
-            CHATGPT_API_URL, headers=CHATGPT_API_HEADERS, json=data)
-        if response.status_code != 200:
-            logger.info(
-                f'HTTP code: {response.status_code}, trying again in {tries}')
-            time.sleep(tries)
-            continue
-        response = response.json()
+    for attempt in range(CHATGPT_MAX_ATTEMPTS):
+        response = None
+        try:
+            response = requests.post(
+                CHATGPT_API_URL, headers=CHATGPT_API_HEADERS, json=data,
+                timeout=CHATGPT_REQUEST_TIMEOUT)
+        except (requests.Timeout, requests.ConnectionError) as exc:
+            logger.warning('OpenAI transport error: %s', type(exc).__name__)
+        else:
+            if response.status_code == 200 and on_success is not None:
+                on_success()
+            try:
+                payload = response.json()
+            except ValueError:
+                payload = {}
+            if response.status_code != 200:
+                error = payload.get('error') or {} if isinstance(payload, dict) else {}
+                if not isinstance(error, dict):
+                    error = {}
+                code = error.get('code')
+                error_type = error.get('type')
+                logger.warning('OpenAI HTTP %s, model=%s, code=%s, type=%s',
+                               response.status_code, CHATGPT_MODEL, code, error_type)
+                if (response.status_code not in (408, 429, 500, 502, 503, 504) or
+                        code in ('insufficient_quota', 'billing_hard_limit_reached') or
+                        error_type == 'insufficient_quota'):
+                    return None
+            else:
+                try:
+                    content = payload['choices'][0]['message']['content']
+                    if not isinstance(content, str) or not content.strip():
+                        return None
+                except (KeyError, IndexError, TypeError):
+                    logger.warning('OpenAI returned no text choice')
+                    return None
+                message = content.strip('.').strip('"').strip()
+                for pattern in CHATGPT_REMOVE_PATTERNS:
+                    message = re.sub(pattern, "", message, flags=re.IGNORECASE)
+                if not any(re.search(pattern, message, re.IGNORECASE)
+                           for pattern in CHATGPT_FILTER_PATTERNS):
+                    return message
+                logger.info('Retrying filtered OpenAI response')
 
-        if 'choices' not in response:
-            return None
+        if attempt + 1 < CHATGPT_MAX_ATTEMPTS:
+            delay = retry_delay(response, attempt)
+            if delay is None:
+                return None
+            time.sleep(delay)
 
-        message = response["choices"][0]["message"]["content"]\
-            .strip('.').strip('"').strip()
-        print(message)
-
-        for pattern in CHATGPT_REMOVE_PATTERNS:
-            message = re.sub(pattern, "", message, flags=re.IGNORECASE)
-        if not any(re.search(pattern, message, re.IGNORECASE) for pattern in CHATGPT_FILTER_PATTERNS):
-            break
-        logger.info(f'Skipped: {message}')
-        time.sleep(tries)
-
-    return message.strip('.').strip('"').strip() if message else None
-
-    tries = 0
-    message = None
-    while tries < 10:
-        tries += 1
-        content = prompt
-        content += "\nОтветь одним предложением в стиле персонажа Evan (Эван) из вселенной Pact"
-        if not random.randint(0, 1):
-            content += " или как будто ты 12-летний паренек"
-        data = {
-            "model": "gpt-4" if tries == 1 else "gpt-3.5-turbo",
-            "messages": [{"role": "user", "name": user['username'], "content": content}],
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-            "stop": stop,
-        }
-        response = requests.post(
-            CHATGPT_API_URL, headers=CHATGPT_API_HEADERS, json=data)
-        if response.status_code != 200:
-            logger.info(
-                f'HTTP code: {response.status_code}, trying again in {tries}')
-            time.sleep(tries)
-            continue
-        response = response.json()
-        if 'choices' not in response:
-            return None
-        message = response["choices"][0]["message"]["content"]\
-            .strip('.').strip('"').strip()
-        print(message)
-        for pattern in CHATGPT_REMOVE_PATTERNS:
-            message = re.sub(pattern, "", message, flags=re.IGNORECASE)
-        if not any(re.search(pattern, message, re.IGNORECASE) for pattern in CHATGPT_FILTER_PATTERNS):
-            break
-        logger.info(f'Skipped: {message}')
-        time.sleep(tries)
     return message.strip('.').strip('"').strip() if message else None

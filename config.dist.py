@@ -2,7 +2,11 @@
 # rename this to config.py and edit
 TOKEN = "YOUR-API-TOKEN"
 NAMES = ['эван', 'evan']
+# Legacy administrator usernames remain supported; prefer immutable Telegram IDs.
 ADMIN_USERS = []
+ADMIN_USER_IDS = []
+ALLOWED_USER_IDS = []
+ALLOWED_GROUP_IDS = []
 
 AWS_ACCESS_KEY_ID = ''
 AWS_SECRET_ACCESS_KEY = ''

@@ -18,6 +18,14 @@ logging.root.setLevel(logging.getLevelName(log_level))  # type: ignore
 logger = logging.getLogger(__name__)
 
 
+def is_admin(user):
+    """Recognize ID-based admins and the existing username-based admin list."""
+    return bool(user and (
+        user.id in globals().get('ADMIN_USER_IDS', ()) or
+        (user.username and user.username in ADMIN_USERS)
+    ))
+
+
 def lxml_stringify_children(node):
     """
     Returns XML contents of the node

@@ -1,0 +1,41 @@
+name: evan-bot
+services:
+  bot:
+    build: .
+    image: ${EVAN_IMAGE:-evan-bot:local}
+    restart: unless-stopped
+    init: true
+    env_file: .env
+    environment:
+      HISTORY_DB_PATH: /data/history.sqlite3
+      HEARTBEAT_PATH: /data/heartbeat
+      HISTORY_MAX_MESSAGES: ${HISTORY_MAX_MESSAGES:-20}
+      HISTORY_MAX_CHARS: ${HISTORY_MAX_CHARS:-16000}
+      HISTORY_RETENTION_DAYS: ${HISTORY_RETENTION_DAYS:-7}
+      DAILY_USER_MESSAGE_LIMIT: ${DAILY_USER_MESSAGE_LIMIT:-30}
+      DAILY_GROUP_MESSAGE_LIMIT: ${DAILY_GROUP_MESSAGE_LIMIT:-100}
+    volumes:
+      - history:/data
+      - ./config.py:/app/config.py:ro
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 256m
+    cpus: 0.50
+    pids_limit: 64
+    stop_grace_period: 45s
+    healthcheck:
+      test: [CMD, python, -c, "import os,time; assert time.time()-os.stat('/data/heartbeat').st_mtime < 120"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: json-file
+      options:
+        max-size: 5m
+        max-file: '3'
+volumes:
+  history:

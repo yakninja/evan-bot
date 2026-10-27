@@ -23,6 +23,11 @@ var/
 
 # Config
 config.py
+.env
+data/
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
 
 # Dev
 .mypy_cache/
